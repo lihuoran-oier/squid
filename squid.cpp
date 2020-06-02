@@ -6,6 +6,7 @@
 #include<vector>
 using namespace std;
 const int VNP_ERROR = 2147483647;
+bool boardcast = true;
 struct ist {
     float x1 = 0, x2 = 0;
     string oprt;
@@ -66,7 +67,7 @@ string var_valve_str(string varname) {
         return flt2str(var_list[plc].valve);
 }
 
-string compile_var(string cmd)  //我蜂了
+string compile_var(string cmd)
 {
     string varname;
     int state = 0;
@@ -113,20 +114,33 @@ bool ifstatu(void) {
         return true;
 }
 
-bool run_command(string command,bool boardcast){
+bool run_command(string command){
     if (!ifstatu) return false;
     command = compile_var(command);
     stringstream inp(command);
+    string subcmd = subcommand(command);
     string root_com;
     string temp;
     inp >> root_com;
     if (root_com == "system") {
         if (boardcast) cout << "Run system command" << endl;
-        temp = subcommand(command);
-        system(temp.c_str());
+        system(subcmd.c_str());
+    }
+    else if (root_com == "boardcast") {
+        if (subcmd == "on" || subcmd == "true") {
+            boardcast = true;
+            if (boardcast) cout << "Boardcast command result now on" << endl;
+        }
+        else if (subcmd == "off" || subcmd == "false") {
+            boardcast = false;
+            if (boardcast) cout << "这条语句永远不会被执行2333" << endl;
+        }
+        else {
+            cout << "[ERROR] Unknown statu '" << subcmd << "'" << endl;
+        }
     }
     else if (root_com == "output") {
-        if (boardcast) cout << subcommand(command) << endl;
+        cout << subcommand(command) << endl;
     }
     else if (root_com == "exit") {
         cout << "Bye!\nPress any key to exit" << endl;
@@ -134,18 +148,16 @@ bool run_command(string command,bool boardcast){
         return true;
     }
     else if (root_com == "runfile") {
-        string path;
-        path = subcommand(command);
-        ifstream rf(path.c_str(), ios::_Nocreate);
+       ifstream rf(subcmd.c_str(), ios::_Nocreate);
         if (rf) {
             while (!rf.eof()) {
                 getline(rf, temp);
-                if (run_command(temp,false))
+                if (run_command(temp))
                     return true;
-            }
+            } 
         }
         else {
-            cout << "File '" << path << "' does not exist" << endl;
+            cout << "[ERROR] File '" << subcmd << "' does not exist" << endl;
         }
         rf.close();
     }
@@ -154,7 +166,7 @@ bool run_command(string command,bool boardcast){
         string temp_cg1;
         string temp_cg2;
         string temp_cg3;
-        stringstream trc(subcommand(command));
+        stringstream trc(subcmd);
         trc >> temp_rc >> temp_cg1 >> temp_cg2 >> temp_cg3;
         if (temp_rc == "new") {
             if (varname_place(temp_cg1) != VNP_ERROR) {
@@ -168,7 +180,7 @@ bool run_command(string command,bool boardcast){
             }
         }
         else if (temp_rc == "list") {
-            cout << "There are " << var_list.size() << " variables exist:" << endl;
+            cout << "[INFO] There are " << var_list.size() << " variables exist:" << endl;
             for (int i = 0; i < var_list.size(); i++)
                 cout << var_list[i].name << " = " << var_list[i].valve << endl;
         }
@@ -207,13 +219,16 @@ bool run_command(string command,bool boardcast){
                     if (boardcast) cout << "Variable '" << temp_cg1 << "' has been setted to " << var_list[plc].valve << endl;
                 }
                 else {
-                    cout << "Unknown oprator '" << temp_cg2 << "'" << endl;
+                    cout << "[ERROR] Unknown oprator '" << temp_cg2 << "'" << endl;
                 }
             }
         }
+        else {
+            cout << "[ERROR] Unknown subcommand '" << temp_rc << "'" << endl;
+        }
     }
     else if (root_com == "if") {
-        stringstream comps(subcommand(command));
+        stringstream comps(subcmd);
         comps >> if_status.x1 >> if_status.oprt >> if_status.x2;
         if_status.enable = true;
         if (boardcast) cout << "Conditional judgment has been enabled";
@@ -223,7 +238,7 @@ bool run_command(string command,bool boardcast){
         if (boardcast) cout << "Conditional judgment has been disabled";
     }
     else{
-        if (boardcast) cout << "Unknown command '" << command << "'" << endl;
+        cout << "[ERROR] Unknown command '" << command << "'" << endl;
     }
     return false;
 }
@@ -243,7 +258,7 @@ int main(int argc, char *argv[])
     {
         cout << ">>>";
         getline(cin,inp_com);
-        if(run_command(inp_com,true))
+        if(run_command(inp_com))
             return 0;
     }
 }
