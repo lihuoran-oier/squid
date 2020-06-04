@@ -103,11 +103,11 @@ bool ifstatu(void) {
         return true;
 }
 int run_command(string command) {
+    string subcmd;
     if (ifstatu()) {
         for (int i = 0; i < command.size(); i++)
             if (command[i] == '\\' && command[i + 1] == 'n')
                 command.replace(i, 2, "\n");
-
         int state = 0;
         for (int i = 0; i < command.size(); i++) {
             if (state == 0 && command[i] != ' ')
@@ -115,19 +115,23 @@ int run_command(string command) {
             if (state == 1 && command[i] == ' ')
                 state = 2;
             if (state == 2 && command[i] != ' ') {
-                string subcmd(command.substr(i, MAXN));
-                stringstream rtcmdpe(command);
-                string rootcmd;
-                rtcmdpe >> rootcmd;
-                if (cmd_register.count(rootcmd) == 1)
-                    return cmd_register[rootcmd](subcmd);
-                else
-                    cout << "[ERROR] Unknown command'" << rootcmd << "'" << endl;
+                subcmd = command.substr(i, MAXN);
+                break;
             }
         }
+        stringstream rtcmdpe(command);
+        string rootcmd;
+        rtcmdpe >> rootcmd;
+        if (cmd_register.count(rootcmd) == 1)
+            return cmd_register[rootcmd](subcmd);
+        else
+            cout << "[ERROR] Unknown command'" << rootcmd << "'" << endl;
     }
     else
-        return IFSTATUS_FALSE;
+        if(command=="(endif)")
+            return cmd_register[command](subcmd);
+        else
+            return IFSTATUS_FALSE;
 }
 //===添加命令处理函数开始===//
 
@@ -243,12 +247,12 @@ int _If_sqcmd(string subcmd) {
     stringstream comps(subcmd);
     comps >> if_status.x1 >> if_status.oprt >> if_status.x2;
     if_status.enable = true;
-    if (_boardcast) cout << "Conditional judgment has been enabled";
+    if (_boardcast) cout << "Conditional judgment has been enabled" << endl;
     return 0;
 }
 int _Endif_sqcmd(string subcmd) {
     if_status.enable = false;
-    if (_boardcast) cout << "Conditional judgment has been disabled";
+    if (_boardcast) cout << "Conditional judgment has been disabled" << endl;
     return 0;
 }
 
