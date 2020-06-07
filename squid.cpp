@@ -4,22 +4,53 @@
 #include<sstream>
 #include<cmath>
 #include<vector>
+#include<ctime>
 #include<map>
+#include<windows.h>
 using namespace std;
 
 const int EXIT_MAIN = 65536;
-const int IFSTATUS_FALSE = 100001;
+const int IFSTATES_FALSE = 100001;
 const int MAXN = 2147483647;
-bool _boardcast = true;
 struct _ifst_str {
     float x1 = 0, x2 = 0;
     string oprt;
     bool enable = false;
 };
-_ifst_str if_status;
+_ifst_str if_states;
 typedef int(*Fp)(string subcmd);
 map<string, double> var_list;
 map<string, Fp> cmd_register;
+
+bool _sendLog_tgl = true;
+bool _sendWarn_tgl = true;
+
+void sendLog(string msg) {
+    if (_sendLog_tgl) cout << "[LOG]" << msg << endl;
+}
+
+void sendWarn(string msg) {
+    if (_sendWarn_tgl) cout << "[WARN] " << msg << endl;
+}
+
+void sendError(string msg) {
+    cout << "[ERROR] " << msg << endl;
+}
+
+void sendInfo(string msg) {
+    cout << "[INFO] " << msg << endl;
+}
+
+void sendOutput(string msg) {
+    cout << msg << endl;
+}
+
+string sysTime(void) {
+    int timep = time(0);
+    stringstream strtemp;
+    strtemp << timep / 3600 % 24 << ':' << timep % 3600 / 60 << ':' << timep % 60;
+    return strtemp.str();
+}
 
 string subcommand(string command)
 {
@@ -52,6 +83,13 @@ string dbl2str(double flt) {
     return temp;
 }
 
+string int2str(int flt) {
+    stringstream strm;
+    strm << flt;
+    string temp(strm.str());
+    return temp;
+}
+
 void _regcmd(string cmdstr,Fp cmdfp) {
     cmd_register.insert(make_pair(cmdstr, cmdfp));
 }
@@ -60,10 +98,13 @@ string compile_var(string cmd)
 {
     string varname;
     int state = 0;
+    char type;
     int ns = 0, ne = cmd.size() - 1;
     for (int i = 0; i < cmd.size(); i++) {
-        if (cmd[i] == '$' && cmd[i + 1] == '<') {
+        if ((cmd[i] == '$' || cmd[i] == '@') && cmd[i + 1] == '<') {
+            type = cmd[i];
             varname.clear();
+            
             state = 1;
             ns = i;
             i += 2;
@@ -77,93 +118,114 @@ string compile_var(string cmd)
     }
     if (state == 2) {
         int ln = ne - ns + 1;
-        cmd.replace(ns, ln, dbl2str(var_list[varname]));
+        if(type=='$')
+            cmd.replace(ns, ln, dbl2str(var_list[varname]));
+        else if (type == '@') {
+            if (varname == "endl")
+                cmd.replace(ns, ln, "\n");
+            else if (varname == "sysTimeStamp")
+                cmd.replace(ns, ln, int2str(time(0)));
+            else if (varname == "sysTime")
+                cmd.replace(ns, ln, sysTime());
+            else
+                cmd.erase(ns, ln);
+        }
         cmd = compile_var(cmd);
     }
     return cmd;
 }
 
-bool ifstatu(void) {
+bool ifstate(void) {
     int oprt = 0;
-    if (if_status.oprt == ">" || if_status.oprt == "is_bigger_than")
+    if (if_states.oprt == ">" || if_states.oprt == "is_bigger_than")
         oprt = 1;
-    else if (if_status.oprt == ">=" || if_status.oprt == "isnot_less_than")
+    else if (if_states.oprt == ">=" || if_states.oprt == "isnot_less_than")
         oprt = 2;
-    else if (if_status.oprt == "<" || if_status.oprt == "is_less_than")
+    else if (if_states.oprt == "<" || if_states.oprt == "is_less_than")
         oprt = 3;
-    else if (if_status.oprt == "<=" || if_status.oprt == "isnot_bigger_than")
+    else if (if_states.oprt == "<=" || if_states.oprt == "isnot_bigger_than")
         oprt = 4;
-    else if (if_status.oprt == "=" || if_status.oprt == "==" || if_status.oprt == "is")
+    else if (if_states.oprt == "=" || if_states.oprt == "==" || if_states.oprt == "is")
         oprt = 5;
-    else if (if_status.oprt == "!=" || if_status.oprt == "isnot")
+    else if (if_states.oprt == "!=" || if_states.oprt == "isnot")
         oprt = 6;
-    if (if_status.enable == true)
-        return (if_status.x1 > if_status.x2 && oprt == 1) || (if_status.x1 >= if_status.x2 && oprt == 2) || (if_status.x1 < if_status.x2&& oprt == 3) || (if_status.x1 <= if_status.x2 && oprt == 4) || (if_status.x1 == if_status.x2 && oprt == 5) || (if_status.x1 != if_status.x2 && oprt == 6);
+    if (if_states.enable == true)
+        return (if_states.x1 > if_states.x2 && oprt == 1) || (if_states.x1 >= if_states.x2 && oprt == 2) || (if_states.x1 < if_states.x2&& oprt == 3) || (if_states.x1 <= if_states.x2 && oprt == 4) || (if_states.x1 == if_states.x2 && oprt == 5) || (if_states.x1 != if_states.x2 && oprt == 6);
     else
         return true;
 }
 int run_command(string command) {
     string subcmd;
-    if (ifstatu()) {
-        for (int i = 0; i < command.size(); i++)
-            if (command[i] == '\\' && command[i + 1] == 'n')
-                command.replace(i, 2, "\n");
-        int state = 0;
-        for (int i = 0; i < command.size(); i++) {
-            if (state == 0 && command[i] != ' ')
-                state = 1;
-            if (state == 1 && command[i] == ' ')
-                state = 2;
-            if (state == 2 && command[i] != ' ') {
-                subcmd = command.substr(i, MAXN);
-                break;
-            }
+    int state = 0;
+    for (int i = 0; i < command.size(); i++) {
+        if (state == 0 && command[i] != ' ')
+            state = 1;
+        if (state == 1 && command[i] == ' ')
+            state = 2;
+        if (state == 2 && command[i] != ' ') {
+            subcmd = command.substr(i, MAXN);
+            break;
         }
-        stringstream rtcmdpe(command);
-        string rootcmd;
-        rtcmdpe >> rootcmd;
-        if (cmd_register.count(rootcmd) == 1)
-            return cmd_register[rootcmd](subcmd);
-        else
-            cout << "[ERROR] Unknown command'" << rootcmd << "'" << endl;
     }
-    else
-        if(command=="(endif)")
-            return cmd_register[command](subcmd);
-        else
-            return IFSTATUS_FALSE;
+    stringstream rtcmdpe(command);
+    string rootcmd;
+    rtcmdpe >> rootcmd;
+    if (cmd_register.count(rootcmd) == 1)
+        return cmd_register[rootcmd](subcmd);
+    else {
+        stringstream msgtemp;
+        msgtemp << "Unknown command'" << rootcmd << "'";
+        sendError(msgtemp.str());
+    }
+
 }
 //===添加命令处理函数开始===//
 
-int boardcast(string subcmd) {
-    if (subcmd == "on" || subcmd == "true") {
-        _boardcast = true;
-        if (_boardcast) cout << "Boardcast command result now on" << endl;
+int settings(string subcmd) {
+    if (!ifstate()) return IFSTATES_FALSE;
+
+    stringstream cmdvcp(subcmd);
+    string sett, state;
+    cmdvcp >> sett >> state;
+    if (sett == "sendLog") {
+        if (state == "on" || state == "true")
+            _sendLog_tgl = true;
+        else if (state == "off" || state == "false")
+            _sendLog_tgl = false;
+        else {
+            stringstream msgtemp;
+            msgtemp << "Unknown state '" << state << "'";
+            sendError(msgtemp.str());
+        }
     }
-    else if (subcmd == "off" || subcmd == "false") {
-        _boardcast = false;
-        if (_boardcast) cout << "这条语句永远不会被执行2333" << endl;
-    }
-    else {
-        cout << "[ERROR] Unknown statu '" << subcmd << "'" << endl;
+    if (sett == "sendWarn") {
+
     }
     return 0;
 }
 int _System_sqcmd(string subcmd) {
-    if (_boardcast) cout << "Run system command" << endl;
+    if (!ifstate()) return IFSTATES_FALSE;
+
+    sendLog("Run system command");
     system(subcmd.c_str());
     return 0;
 }
 int output(string subcmd) {
-    cout << subcmd << endl;
+    if (!ifstate()) return IFSTATES_FALSE;
+
+    sendOutput(subcmd);
     return 0;
 }
 int _Exit_sqcmd(string subcmd) {
-    cout << "Bye!\nPress any key to exit" << endl;
+    if (!ifstate()) return IFSTATES_FALSE;
+
+    sendOutput("Bye!\nPress any key to exit");
     getchar();
     return EXIT_MAIN;
 }
 int runfile(string subcmd) {
+    if (!ifstate()) return IFSTATES_FALSE;
+
     string temp;
     ifstream rf(subcmd.c_str(), ios::_Nocreate);
     if (rf) {
@@ -173,12 +235,16 @@ int runfile(string subcmd) {
         }
     }
     else {
-        cout << "[ERROR] File '" << subcmd << "' does not exist" << endl;
+        stringstream msgtemp;
+        msgtemp << "File '" << subcmd << "' does not exist" << endl;
+        sendError(msgtemp.str());
         return 0;
     }
     rf.close();
 }
 int _Var_sqcmd(string subcmd) {
+    if (!ifstate()) return IFSTATES_FALSE;
+
     string temp_rc;
     string temp_cg1;
     string temp_cg2;
@@ -187,79 +253,104 @@ int _Var_sqcmd(string subcmd) {
     trc >> temp_rc >> temp_cg1 >> temp_cg2 >> temp_cg3;
     if (temp_rc == "new") {
         if (var_list.count(temp_cg1) == 1) {
-            if (_boardcast) cout << "The variable '" << temp_cg1 << "' was already exists" << endl;
+            sendWarn("The variable '" + temp_cg1 + "' was already exists");
         }
         else {
             var_list.insert(make_pair(temp_cg1, 0));
-            if (_boardcast) cout << "New variable '" << temp_cg1 << "' has been created" << endl;
+            sendLog("New variable '" + temp_cg1 + "' has been created");
         }
     }
     else if (temp_rc == "list") {
         map<string, double>::iterator it;
-        cout << "[INFO] There are " << var_list.size() << " variables exist:" << endl;
+        stringstream msgtemp;
+        msgtemp << "There are " << var_list.size() << " variables exist:" << endl;
         for (it = var_list.begin(); it != var_list.end(); it++)
-            cout << it->first << " = " << it->second << endl;
+            msgtemp << it->first << " = " << it->second << endl;
+        sendInfo(msgtemp.str());
     }
     else if (temp_rc == "operation" || temp_rc == "ope") {
         if (var_list.count(temp_cg1) == 0) {
-            if (_boardcast) cout << "The variable '" << temp_cg1 << "' does not exist" << endl;
+            sendWarn("The variable '" + temp_cg1 + "' does not exist");
         }
         else {
             double cg_temp = str2dbl(temp_cg3);
             if (temp_cg2 == "+" || temp_cg2 == "add" || temp_cg2 == "plus") {
                 var_list[temp_cg1] += cg_temp;
-                if (_boardcast) cout << "Variable '" << temp_cg1 << "' has been added by " << cg_temp << " (now " << var_list[temp_cg1] << ")" << endl;
+                stringstream msgtemp;
+                msgtemp << "Variable '" << temp_cg1 << "' has been added by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
+                sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "-" || temp_cg2 == "remove" || temp_cg2 == "minus") {
                 var_list[temp_cg1] -= cg_temp;
-                if (_boardcast) cout << "Variable '" << temp_cg1 << "' has been removed by " << cg_temp << " (now " << var_list[temp_cg1] << ")" << endl;
+                stringstream msgtemp;
+                msgtemp << "Variable '" << temp_cg1 << "' has been removed by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
+                sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "*" || temp_cg2 == "multiply") {
                 var_list[temp_cg1] *= cg_temp;
-                if (_boardcast) cout << "Variable '" << temp_cg1 << "' has been multiplied by " << cg_temp << " (now " << var_list[temp_cg1] << ")" << endl;
+                stringstream msgtemp;
+                msgtemp << "Variable '" << temp_cg1 << "' has been multiplied by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
+                sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "/" || temp_cg2 == "divide") {
-                if (cg_temp == 0) if (_boardcast) cout << "Cannot be divided by 0" << endl; else;
+                if (cg_temp == 0) sendWarn("Cannot be divided by 0");
                 else {
                     var_list[temp_cg1] /= cg_temp;
-                    if (_boardcast) cout << "Variable '" << temp_cg1 << "' has been divided by " << cg_temp << " (now " << var_list[temp_cg1] << ")" << endl;
+                    stringstream msgtemp;
+                    msgtemp << "Variable '" << temp_cg1 << "' has been divided by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
+                    sendLog(msgtemp.str());
                 }
             }
             else if (temp_cg2 == "=" || temp_cg2 == "set") {
                 var_list[temp_cg1] = cg_temp;
-                if (_boardcast) cout << "Variable '" << temp_cg1 << "' has been setted to " << var_list[temp_cg1] << endl;
+                stringstream msgtemp;
+                msgtemp << "Variable '" << temp_cg1 << "' has been setted to " << var_list[temp_cg1];
+                sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "pow" || temp_cg2 == "power" || temp_cg2 == "^") {
                 var_list[temp_cg1] = pow(var_list[temp_cg1], cg_temp);
-                if (_boardcast) cout << "Variable '" << temp_cg1 << "' has been setted to " << var_list[temp_cg1] << endl;
+                stringstream msgtemp;
+                msgtemp << "Variable '" << temp_cg1 << "' has been setted to " << var_list[temp_cg1];
+                sendLog(msgtemp.str());
             }
             else {
-                cout << "[ERROR] Unknown oprator '" << temp_cg2 << "'" << endl;
+                stringstream msgtemp;
+                msgtemp << "Unknown oprator '" << temp_cg2 << "'";
+                sendError(msgtemp.str());
             }
         }
     }
     else {
-        cout << "[ERROR] Unknown subcommand '" << temp_rc << "'" << endl;
+        stringstream msgtemp;
+        msgtemp << "Unknown subcommand '" << temp_rc << "'";
+        sendError(msgtemp.str());
     }
     return 0;
 }
 int _If_sqcmd(string subcmd) {
+    if (!ifstate()) return IFSTATES_FALSE;
+
     stringstream comps(subcmd);
-    comps >> if_status.x1 >> if_status.oprt >> if_status.x2;
-    if_status.enable = true;
-    if (_boardcast) cout << "Conditional judgment has been enabled" << endl;
+    comps >> if_states.x1 >> if_states.oprt >> if_states.x2;
+    if_states.enable = true;
+    sendLog("Conditional judgment has been enabled");
     return 0;
 }
 int _Endif_sqcmd(string subcmd) {
-    if_status.enable = false;
-    if (_boardcast) cout << "Conditional judgment has been disabled" << endl;
+    if (!subcmd.empty()) return 1;
+    if_states.enable = false;
+    sendLog("Conditional judgment has been disabled");
     return 0;
 }
 
 /*
     请使用这个格式来添加命令处理函数：
     int 函数名(string subcmd){...}
-    subcmd是子命令字符串
+    subcmd是子命令字符串，即输入的命令文本除去根命令后第一个非空格字符开始的子字符串。
+
+    为了使命令的运行受if状态的控制，除了无视if的特殊命令，请在函数的第一行加上：
+    if (!ifstate()) return IFSTATES_FALSE;
+    这样当if命令创建的条件判断不通过时处理函数将不会执行并返回。
 */
 
 //===添加命令处理函数结束===//
@@ -267,7 +358,7 @@ int _Endif_sqcmd(string subcmd) {
 void regist_command(void) { //注册命令
     cmd_register.clear();
 
-    _regcmd("boardcast", boardcast);
+    _regcmd("settings", settings);
     _regcmd("system", _System_sqcmd);
     _regcmd("output",output);
     _regcmd("exit", _Exit_sqcmd);
@@ -278,7 +369,7 @@ void regist_command(void) { //注册命令
     /*
         请使用这个格式来注册命令：
         _regcmd("根命令字符串", 函数名指针);
-        若执行的根命令与字符串匹配，将会调用函数名指针指向的函数
+        若执行的根命令与字符串匹配，将会调用函数名指针指向的函数。
     */
 }
 
@@ -293,7 +384,7 @@ int main(int argc, char *argv[])
         if(run_command(path))
             return 0;
     */  //:thonk:
-    cout << "Squid Beta  v0b1" << endl << "Copyright MineCommander (C) 2020" << endl;
+    sendOutput("Squid Beta  v0b1\nCopyright MineCommander (C) 2020");
     regist_command();
     string inp_com;
     while(1)
