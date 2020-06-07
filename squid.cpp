@@ -26,7 +26,7 @@ bool _sendLog_tgl = true;
 bool _sendWarn_tgl = true;
 
 void sendLog(string msg) {
-    if (_sendLog_tgl) cout << "[LOG]" << msg << endl;
+    if (_sendLog_tgl) cout << "[LOG] " << msg << endl;
 }
 
 void sendWarn(string msg) {
@@ -384,6 +384,7 @@ int main(int argc, char *argv[])
         if(run_command(path))
             return 0;
     */  //:thonk:
+    system("title Squid Beta v0.1 - By MineCommander");
     sendOutput("Squid Beta  v0b1\nCopyright MineCommander (C) 2020");
     regist_command();
     string inp_com;
