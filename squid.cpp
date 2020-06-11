@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include<iostream>
 #include<fstream>
 #include<string>
@@ -25,32 +26,49 @@ map<string, Fp> cmd_register;
 bool _sendLog_tgl = true;
 bool _sendWarn_tgl = true;
 
+string getSysTimeData(void) {
+    time_t t = time(0);
+    char tmp[64];
+    strftime(tmp, sizeof(tmp), "%Y%m%d-%H%M%S", localtime(&t));
+    return tmp;
+}
+
+string sysTimeData(getSysTimeData());
+ofstream logging(("logs/" + sysTimeData + ".log").c_str());
+
+string sysTime(void) {
+    time_t t = time(0);
+    char tmp[64];
+    strftime(tmp, sizeof(tmp), "%H:%M:%S", localtime(&t));
+    return tmp;
+}
+
 void sendLog(string msg) {
     if (_sendLog_tgl) cout << "[LOG] " << msg << endl;
+    logging << "[" << sysTime() << "][LOG] " << msg << endl;
 }
 
 void sendWarn(string msg) {
     if (_sendWarn_tgl) cout << "[WARN] " << msg << endl;
+    logging << "[" << sysTime() << "][WARN] " << msg << endl;
 }
 
 void sendError(string msg) {
     cout << "[ERROR] " << msg << endl;
+    logging << "[" << sysTime() << "][ERROR] " << msg << endl;
 }
 
 void sendInfo(string msg) {
     cout << "[INFO] " << msg << endl;
+    logging << "[" << sysTime() << "][INFO] " << msg << endl;
 }
 
-void sendOutput(string msg) {
+void sendOutput(string msg, bool log) {
     cout << msg << endl;
+    if (log) logging << "[" << sysTime() << "][OUTPUT] " << msg << endl;
 }
 
-string sysTime(void) {
-    int timep = time(0);
-    stringstream strtemp;
-    strtemp << timep / 3600 % 24 << ':' << timep % 3600 / 60 << ':' << timep % 60;
-    return strtemp.str();
-}
+
 
 string subcommand(string command)
 {
@@ -213,13 +231,13 @@ int _System_sqcmd(string subcmd) {
 int output(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
-    sendOutput(subcmd);
+    sendOutput(subcmd, true);
     return 0;
 }
 int _Exit_sqcmd(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
-    sendOutput("Bye!\nPress any key to exit");
+    sendOutput("Bye!\nPress any key to exit", false);
     getchar();
     return EXIT_MAIN;
 }
@@ -364,6 +382,7 @@ void regist_command(void) { //注册命令
     _regcmd("exit", _Exit_sqcmd);
     _regcmd("runfile", runfile);
     _regcmd("var", _Var_sqcmd);
+    _regcmd("variable", _Var_sqcmd);
     _regcmd("if", _If_sqcmd);
     _regcmd("(endif)", _Endif_sqcmd);
     /*
@@ -385,7 +404,7 @@ int main(int argc, char *argv[])
             return 0;
     */  //:thonk:
     system("title Squid Beta v0.1 - By MineCommander");
-    sendOutput("Squid Beta  v0b1\nCopyright MineCommander (C) 2020");
+    sendOutput("Squid Beta  v0b1\nCopyright MineCommander (C) 2020", false);
     regist_command();
     string inp_com;
     while(1)
