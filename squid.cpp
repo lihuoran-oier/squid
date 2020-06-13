@@ -7,7 +7,6 @@
 #include<vector>
 #include<ctime>
 #include<map>
-#include<windows.h>
 using namespace std;
 
 const int EXIT_MAIN = 65536;
@@ -85,28 +84,13 @@ string subcommand(string command)
     return "";
 }
 
-double str2dbl(string str) {
-    if (str.size() == 0) return 0;
-    else {
-        stringstream strm(str);
-        double temp;
-        strm >> temp;
-        return temp;
-    }
-}
-
-string dbl2str(double flt) {
-    stringstream strm;
-    strm << flt;
-    string temp(strm.str());
-    return temp;
-}
-
-string int2str(int flt) {
-    stringstream strm;
-    strm << flt;
-    string temp(strm.str());
-    return temp;
+template <class Ta,class Tb>
+Tb atob(const Ta &t) {
+    stringstream temp;
+    temp << t;
+    Tb i;
+    temp >> i;
+    return i;
 }
 
 void _regcmd(string cmdstr,Fp cmdfp) {
@@ -137,13 +121,13 @@ string compile_var(string cmd)
     }
     if (state == 2) {
         int ln = ne - ns + 1;
-        if(type=='$')
-            cmd.replace(ns, ln, dbl2str(var_list[varname]));
+        if (type == '$')
+            cmd.replace(ns, ln, atob<double, string>(var_list[varname]));
         else if (type == '@') {
             if (varname == "endl")
                 cmd.replace(ns, ln, "\n");
             else if (varname == "sysTimeStamp")
-                cmd.replace(ns, ln, int2str(time(0)));
+                cmd.replace(ns, ln, atob<int, string>(time(0)));
             else if (varname == "sysTime")
                 cmd.replace(ns, ln, sysTime());
             else
@@ -204,23 +188,64 @@ int settings(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
     stringstream cmdvcp(subcmd);
-    string sett, state;
-    cmdvcp >> sett >> state;
-    if (sett == "sendLog") {
-        if (state == "on" || state == "true")
-            setting_status.sendLog = true;
-        else if (state == "off" || state == "false")
-            setting_status.sendLog = false;
-        else {
-            stringstream msgtemp;
-            msgtemp << "Unknown state '" << state << "'";
-            sendError(msgtemp.str());
+    string rc, sett, state;
+    cmdvcp >> rc >> sett >> state;
+    if (rc == "ope" || rc == "operation") {
+        if (sett == "sendLog") {
+            if (state == "on" || state == "true")
+                setting_status.sendLog = true;
+            else if (state == "off" || state == "false")
+                setting_status.sendLog = false;
+            else {
+                sendError("Unknown state '" + state + "'");
+                return 0;
+            }
         }
+        else if (sett == "sendWarn") {
+            if (state == "on" || state == "true")
+                setting_status.sendWarn = true;
+            else if (state == "off" || state == "false")
+                setting_status.sendWarn = false;
+            else {
+                sendError("Unknown state '" + state + "'");
+                return 0;
+            }
+        }
+        else if (sett == "systemCommandScriptWarn") {
+            if (state == "on" || state == "true")
+                setting_status.systemCommandScriptWarn = true;
+            else if (state == "off" || state == "false")
+                setting_status.systemCommandScriptWarn = false;
+            else {
+                sendError("Unknown state '" + state + "'");
+                return 0;
+            }
+        }
+        else {
+            sendError("Unknown setting option '" + sett + "'");
+            return 0;
+        }
+        sendLog("Setting option '" + sett + "' has been set to '" + state + "'");
+        return 0;
     }
-    if (sett == "sendWarn") {
-
+    else if (rc == "q" || rc == "query") {
+        stringstream msgtemp;
+        if (sett == "sendLog")
+            msgtemp << "sendLog = " << (setting_status.sendLog ? "true" : "false");
+        else if (sett == "sendWarn")
+            msgtemp << "sendWarn = " << (setting_status.sendWarn ? "true" : "false");
+        else if (sett == "systemCommandScriptWarn")
+            msgtemp << "systemCommandScriptWarn = " << (setting_status.systemCommandScriptWarn ? "true" : "false");
+        else if (sett == "all" || sett == "*")
+            msgtemp << "sendLog = " << (setting_status.sendLog ? "true" : "false") << endl
+                       << "sendWarn = " << (setting_status.sendWarn ? "true" : "false") << endl
+                       << "systemCommandScriptWarn = " << (setting_status.systemCommandScriptWarn ? "true" : "false");
+        else {
+            sendError("Unknown setting option '" + sett + "'");
+            return 0;
+        }
+        sendInfo(msgtemp.str());
     }
-    return 0;
 }
 int _System_sqcmd(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
@@ -250,7 +275,8 @@ int runfile(string subcmd) {
     if (rf) {
         while (!rf.eof()) {
             getline(rf, temp);
-            return (run_command(temp));
+            if (run_command(compile_var(temp)) == EXIT_MAIN)
+                return EXIT_MAIN;
         }
     }
     else {
@@ -270,7 +296,7 @@ int _Var_sqcmd(string subcmd) {
     string temp_cg3;
     stringstream trc(subcmd);
     trc >> temp_rc >> temp_cg1 >> temp_cg2 >> temp_cg3;
-    if (temp_rc == "new") {
+    if (temp_rc == "new" || temp_rc == "create" || temp_rc == "def" || temp_rc == "define") {
         if (var_list.count(temp_cg1) == 1) {
             sendWarn("The variable '" + temp_cg1 + "' was already exists");
         }
@@ -292,7 +318,7 @@ int _Var_sqcmd(string subcmd) {
             sendWarn("The variable '" + temp_cg1 + "' does not exist");
         }
         else {
-            double cg_temp = str2dbl(temp_cg3);
+            double cg_temp = atob<string, double>(temp_cg3);
             if (temp_cg2 == "+" || temp_cg2 == "add" || temp_cg2 == "plus") {
                 var_list[temp_cg1] += cg_temp;
                 stringstream msgtemp;
@@ -339,6 +365,15 @@ int _Var_sqcmd(string subcmd) {
             }
         }
     }
+    else if (temp_rc == "delete" || temp_rc == "del" || temp_rc == "undef" || temp_rc == "define") {
+        if (var_list.count(temp_cg1) == 1) {
+            var_list.erase(temp_cg1);
+            sendLog("The variable '" + temp_cg1 + "' has been deleted");
+        }
+        else {
+            sendWarn("The variable '" + temp_cg1 + "' dose not exist");
+        }
+    }
     else {
         stringstream msgtemp;
         msgtemp << "Unknown subcommand '" << temp_rc << "'";
@@ -359,6 +394,13 @@ int _Endif_sqcmd(string subcmd) {
     if (!subcmd.empty()) return 1;
     if_states.enable = false;
     sendLog("Conditional judgment has been disabled");
+    return 0;
+}
+int _Waitfor_sqcmd(string subcmd) {
+    int tm = atob<string, int>(subcmd);
+    clock_t st;
+    st = clock();
+    while (st > clock() - tm);
     return 0;
 }
 
@@ -386,6 +428,7 @@ void regist_command(void) { //注册命令
     _regcmd("variable", _Var_sqcmd);
     _regcmd("if", _If_sqcmd);
     _regcmd("(endif)", _Endif_sqcmd);
+    _regcmd("wait", _Waitfor_sqcmd);
     /*
         请使用这个格式来注册命令：
         _regcmd("根命令字符串", 函数名指针);
@@ -404,8 +447,8 @@ int main(int argc, char *argv[])
         if(run_command(path))
             return 0;
     */  //:thonk:
-    system("title Squid Beta v0.1 - By MineCommander");
-    sendOutput("Squid Beta  v0b1\nCopyright MineCommander (C) 2020", false);
+    system("title Squid Beta v0.2 - By MineCommander");
+    sendOutput("Squid Beta  v0b2\nCopyright MineCommander (C) 2020", false);
     regist_command();
     string inp_com;
     while(1)
