@@ -424,6 +424,8 @@ void regist_command(void) { //注册命令
     _regcmd("output",output);
     _regcmd("exit", _Exit_sqcmd);
     _regcmd("runfile", runfile);
+    _regcmd("script", runfile);
+    _regcmd("scr", runfile);
     _regcmd("var", _Var_sqcmd);
     _regcmd("variable", _Var_sqcmd);
     _regcmd("if", _If_sqcmd);
