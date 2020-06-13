@@ -17,14 +17,15 @@ struct _ifst_str {
     float x1 = 0, x2 = 0;
     string oprt;
     bool enable = false;
-};
-_ifst_str if_states;
+}; _ifst_str if_states;
 typedef int(*Fp)(string subcmd);
 map<string, double> var_list;
 map<string, Fp> cmd_register;
-
-bool _sendLog_tgl = true;
-bool _sendWarn_tgl = true;
+struct tStn {
+    bool sendLog = true;
+    bool sendWarn = true;
+    bool systemCommandScriptWarn = true;
+}; tStn setting_status;
 
 string getSysTimeData(void) {
     time_t t = time(0);
@@ -44,12 +45,12 @@ string sysTime(void) {
 }
 
 void sendLog(string msg) {
-    if (_sendLog_tgl) cout << "[LOG] " << msg << endl;
+    if (setting_status.sendLog) cout << "[LOG] " << msg << endl;
     logging << "[" << sysTime() << "][LOG] " << msg << endl;
 }
 
 void sendWarn(string msg) {
-    if (_sendWarn_tgl) cout << "[WARN] " << msg << endl;
+    if (setting_status.sendWarn) cout << "[WARN] " << msg << endl;
     logging << "[" << sysTime() << "][WARN] " << msg << endl;
 }
 
@@ -192,7 +193,7 @@ int run_command(string command) {
         return cmd_register[rootcmd](subcmd);
     else {
         stringstream msgtemp;
-        msgtemp << "未知的命令 '" << rootcmd << "'";
+        msgtemp << "Unknown command'" << rootcmd << "'";
         sendError(msgtemp.str());
     }
 
@@ -207,12 +208,12 @@ int settings(string subcmd) {
     cmdvcp >> sett >> state;
     if (sett == "sendLog") {
         if (state == "on" || state == "true")
-            _sendLog_tgl = true;
+            setting_status.sendLog = true;
         else if (state == "off" || state == "false")
-            _sendLog_tgl = false;
+            setting_status.sendLog = false;
         else {
             stringstream msgtemp;
-            msgtemp << "非法的状态 '" << state << "'";
+            msgtemp << "Unknown state '" << state << "'";
             sendError(msgtemp.str());
         }
     }
@@ -224,7 +225,7 @@ int settings(string subcmd) {
 int _System_sqcmd(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
-    sendLog("执行系统命令");
+    sendLog("Run system command");
     system(subcmd.c_str());
     return 0;
 }
@@ -237,7 +238,7 @@ int output(string subcmd) {
 int _Exit_sqcmd(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
-    sendOutput("再见！\n按下任意键退出...", false);
+    sendOutput("Bye!\nPress any key to exit", false);
     getchar();
     return EXIT_MAIN;
 }
@@ -254,7 +255,7 @@ int runfile(string subcmd) {
     }
     else {
         stringstream msgtemp;
-        msgtemp << "找不到文件 '" << subcmd << "'" << endl;
+        msgtemp << "File '" << subcmd << "' does not exist" << endl;
         sendError(msgtemp.str());
         return 0;
     }
@@ -271,76 +272,76 @@ int _Var_sqcmd(string subcmd) {
     trc >> temp_rc >> temp_cg1 >> temp_cg2 >> temp_cg3;
     if (temp_rc == "new") {
         if (var_list.count(temp_cg1) == 1) {
-            sendWarn("变量 '" + temp_cg1 + "' 已经存在了");
+            sendWarn("The variable '" + temp_cg1 + "' was already exists");
         }
         else {
             var_list.insert(make_pair(temp_cg1, 0));
-            sendLog("创建了新变量 '" + temp_cg1 + "'");
+            sendLog("New variable '" + temp_cg1 + "' has been created");
         }
     }
     else if (temp_rc == "list") {
         map<string, double>::iterator it;
         stringstream msgtemp;
-        msgtemp << "当前拥有" << var_list.size() << "个变量：" << endl;
+        msgtemp << "There are " << var_list.size() << " variables exist:" << endl;
         for (it = var_list.begin(); it != var_list.end(); it++)
             msgtemp << it->first << " = " << it->second << endl;
         sendInfo(msgtemp.str());
     }
     else if (temp_rc == "operation" || temp_rc == "ope") {
         if (var_list.count(temp_cg1) == 0) {
-            sendWarn("变量 '" + temp_cg1 + "' 不存在");
+            sendWarn("The variable '" + temp_cg1 + "' does not exist");
         }
         else {
             double cg_temp = str2dbl(temp_cg3);
             if (temp_cg2 == "+" || temp_cg2 == "add" || temp_cg2 == "plus") {
                 var_list[temp_cg1] += cg_temp;
                 stringstream msgtemp;
-                msgtemp << "变量 '" << temp_cg1 << "' 的值被加上了" << cg_temp << " （现在为" << var_list[temp_cg1] << "）";
+                msgtemp << "Variable '" << temp_cg1 << "' has been added by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
                 sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "-" || temp_cg2 == "remove" || temp_cg2 == "minus") {
                 var_list[temp_cg1] -= cg_temp;
                 stringstream msgtemp;
-                msgtemp << "变量 '" << temp_cg1 << "' 的值被减去了" << cg_temp << " （现在为" << var_list[temp_cg1] << "）";
+                msgtemp << "Variable '" << temp_cg1 << "' has been removed by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
                 sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "*" || temp_cg2 == "multiply") {
                 var_list[temp_cg1] *= cg_temp;
                 stringstream msgtemp;
-                msgtemp << "变量 '" << temp_cg1 << "' 的值被乘以了" << cg_temp << " （现在为" << var_list[temp_cg1] << "）";
+                msgtemp << "Variable '" << temp_cg1 << "' has been multiplied by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
                 sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "/" || temp_cg2 == "divide") {
-                if (cg_temp == 0) sendWarn("不能除以0");
+                if (cg_temp == 0) sendWarn("Cannot be divided by 0");
                 else {
                     var_list[temp_cg1] /= cg_temp;
                     stringstream msgtemp;
-                    msgtemp << "变量 '" << temp_cg1 << "' 的值被除以了" << cg_temp << " （现在为" << var_list[temp_cg1] << "）";
+                    msgtemp << "Variable '" << temp_cg1 << "' has been divided by " << cg_temp << " (now " << var_list[temp_cg1] << ")";
                     sendLog(msgtemp.str());
                 }
             }
             else if (temp_cg2 == "=" || temp_cg2 == "set") {
                 var_list[temp_cg1] = cg_temp;
                 stringstream msgtemp;
-                msgtemp << "变量 '" << temp_cg1 << "' 的值已被设为" << var_list[temp_cg1];
+                msgtemp << "Variable '" << temp_cg1 << "' has been setted to " << var_list[temp_cg1];
                 sendLog(msgtemp.str());
             }
             else if (temp_cg2 == "pow" || temp_cg2 == "power" || temp_cg2 == "^") {
                 var_list[temp_cg1] = pow(var_list[temp_cg1], cg_temp);
                 stringstream msgtemp;
-                msgtemp << "变量 '" << temp_cg1 << "' 的值已被设为" << var_list[temp_cg1];
+                msgtemp << "Variable '" << temp_cg1 << "' has been setted to " << var_list[temp_cg1];
                 sendLog(msgtemp.str());
             }
             else {
                 stringstream msgtemp;
-                msgtemp << "未知操作符 '" << temp_cg2 << "'";
+                msgtemp << "Unknown oprator '" << temp_cg2 << "'";
                 sendError(msgtemp.str());
             }
         }
     }
     else {
         stringstream msgtemp;
-        msgtemp << "未知的子命令 '" << temp_rc << "'";
+        msgtemp << "Unknown subcommand '" << temp_rc << "'";
         sendError(msgtemp.str());
     }
     return 0;
@@ -351,13 +352,13 @@ int _If_sqcmd(string subcmd) {
     stringstream comps(subcmd);
     comps >> if_states.x1 >> if_states.oprt >> if_states.x2;
     if_states.enable = true;
-    sendLog("条件判断已启用");
+    sendLog("Conditional judgment has been enabled");
     return 0;
 }
 int _Endif_sqcmd(string subcmd) {
     if (!subcmd.empty()) return 1;
     if_states.enable = false;
-    sendLog("条件判断已禁用");
+    sendLog("Conditional judgment has been disabled");
     return 0;
 }
 
@@ -404,7 +405,7 @@ int main(int argc, char *argv[])
             return 0;
     */  //:thonk:
     system("title Squid Beta v0.1 - By MineCommander");
-    sendOutput("Squid Beta 版本：v0b1\n版权所有 MineCommander (C) 2020", false);
+    sendOutput("Squid Beta  v0b1\nCopyright MineCommander (C) 2020", false);
     regist_command();
     string inp_com;
     while(1)
