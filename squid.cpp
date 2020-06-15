@@ -16,7 +16,7 @@ struct _ifst_str {
     float x1 = 0, x2 = 0;
     string oprt;
     bool enable = false;
-}; _ifst_str if_states;
+}    if_states;
 typedef int(*Fp)(string subcmd);
 map<string, double> var_list;
 map<string, Fp> cmd_register;
@@ -24,7 +24,7 @@ struct tStn {
     bool sendLog = true;
     bool sendWarn = true;
     bool systemCommandScriptWarn = true;
-}; tStn setting_status;
+}    setting_status;
 
 string getSysTimeData(void) {
     time_t t = time(0);
@@ -34,7 +34,7 @@ string getSysTimeData(void) {
 }
 
 string sysTimeData(getSysTimeData());
-ofstream logging(("logs/" + sysTimeData + ".log").c_str());
+ofstream logFile(("logs/" + sysTimeData + ".log").c_str());
 
 string sysTime(void) {
     time_t t = time(0);
@@ -45,27 +45,27 @@ string sysTime(void) {
 
 void sendLog(string msg) {
     if (setting_status.sendLog) cout << "[LOG] " << msg << endl;
-    logging << "[" << sysTime() << "][LOG] " << msg << endl;
+    logFile << "[" << sysTime() << "][LOG] " << msg << endl;
 }
 
 void sendWarn(string msg) {
     if (setting_status.sendWarn) cout << "[WARN] " << msg << endl;
-    logging << "[" << sysTime() << "][WARN] " << msg << endl;
+    logFile << "[" << sysTime() << "][WARN] " << msg << endl;
 }
 
 void sendError(string msg) {
     cout << "[ERROR] " << msg << endl;
-    logging << "[" << sysTime() << "][ERROR] " << msg << endl;
+    logFile << "[" << sysTime() << "][ERROR] " << msg << endl;
 }
 
 void sendInfo(string msg) {
     cout << "[INFO] " << msg << endl;
-    logging << "[" << sysTime() << "][INFO] " << msg << endl;
+    logFile << "[" << sysTime() << "][INFO] " << msg << endl;
 }
 
 void sendOutput(string msg, bool log) {
     cout << msg << endl;
-    if (log) logging << "[" << sysTime() << "][OUTPUT] " << msg << endl;
+    if (log) logFile << "[" << sysTime() << "][OUTPUT] " << msg << endl;
 }
 
 
@@ -190,7 +190,7 @@ int settings(string subcmd) {
     stringstream cmdvcp(subcmd);
     string rc, sett, state;
     cmdvcp >> rc >> sett >> state;
-    if (rc == "ope" || rc == "operation") {
+    if (rc == "m" || rc == "modify") {
         if (sett == "sendLog") {
             if (state == "on" || state == "true")
                 setting_status.sendLog = true;
@@ -246,11 +246,14 @@ int settings(string subcmd) {
         }
         sendInfo(msgtemp.str());
     }
+    else {
+        sendError("Unknown subcommand '" + rc + "'");
+    }
 }
 int _System_sqcmd(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
-    sendLog("Run system command");
+    sendLog("Run system command '" + subcmd + "'");
     system(subcmd.c_str());
     return 0;
 }
@@ -271,7 +274,7 @@ int runfile(string subcmd) {
     if (!ifstate()) return IFSTATES_FALSE;
 
     string temp;
-    ifstream rf(subcmd.c_str(), ios::_Nocreate);
+    ifstream rf(subcmd.c_str());
     if (rf) {
         while (!rf.eof()) {
             getline(rf, temp);
