@@ -15,31 +15,14 @@ class tcSqlib {
 private:
     ;
 public:
-    class tcSqLio {
+        class tcIfStu {
     private:
         ;
     public:
-        void sendLog(string msg) {
-            if (squidlib.settings.sendLog) cout << "[LOG] " << msg << endl;
-            logFile << "[" << squidlib.general.getSysTime() << "][LOG] " << msg << endl;
-        }
-        void sendWarn(string msg) {
-            if (squidlib.settings.sendWarn) cout << "[WARN] " << msg << endl;
-            logFile << "[" << squidlib.general.getSysTime() << "][WARN] " << msg << endl;
-        }
-        void sendError(string msg) {
-            cout << "[ERROR] " << msg << endl;
-            logFile << "[" << squidlib.general.getSysTime() << "][ERROR] " << msg << endl;
-        }
-        void sendInfo(string msg) {
-            cout << "[INFO] " << msg << endl;
-            logFile << "[" << squidlib.general.getSysTime() << "][INFO] " << msg << endl;
-        }
-        void sendOutput(string msg, bool log) {
-            cout << msg << endl;
-            if (log) logFile << "[" << squidlib.general.getSysTime() << "][OUTPUT] " << msg << endl;
-        }
-    }   io;
+        float x1 = 0, x2 = 0;
+        string oprt;
+        bool enable = false;
+    }   if_status;
     class tcSqLGen {
     private:
         ;
@@ -89,14 +72,6 @@ public:
             return i;
         }
     }   general;
-    class tcIfStu {
-    private:
-        ;
-    public:
-        float x1 = 0, x2 = 0;
-        string oprt;
-        bool enable = false;
-    }   if_status;
     class tcLSett {
     private:
         ;
@@ -105,6 +80,31 @@ public:
         bool sendWarn = true;
         bool systemCommandScriptWarn = true;
     }   settings;
+    class tcSqLio {
+    private:
+        ;
+    public:
+        void sendLog(string msg) {
+            if (squidlib.settings.sendLog) cout << "[LOG] " << msg << endl;
+            logFile << "[" << squidlib.general.getSysTime() << "][LOG] " << msg << endl;
+        }
+        void sendWarn(string msg) {
+            if (squidlib.settings.sendWarn) cout << "[WARN] " << msg << endl;
+            logFile << "[" << squidlib.general.getSysTime() << "][WARN] " << msg << endl;
+        }
+        void sendError(string msg) {
+            cout << "[ERROR] " << msg << endl;
+            logFile << "[" << squidlib.general.getSysTime() << "][ERROR] " << msg << endl;
+        }
+        void sendInfo(string msg) {
+            cout << "[INFO] " << msg << endl;
+            logFile << "[" << squidlib.general.getSysTime() << "][INFO] " << msg << endl;
+        }
+        void sendOutput(string msg, bool log) {
+            cout << msg << endl;
+            if (log) logFile << "[" << squidlib.general.getSysTime() << "][OUTPUT] " << msg << endl;
+        }
+    }   io;
     class tcSqLCmd {
     private:
         ;
@@ -154,7 +154,7 @@ public:
                     else if (varname == "sysTimeStamp")
                         cmd.replace(ns, ln, squidlib.general.atob<int, string>(time(0)));
                     else if (varname == "sysTime")
-                        cmd.replace(ns, ln, squidlib.general.getSysTimeData());
+                        cmd.replace(ns, ln, squidlib.general.getSysTime());
                     else
                         cmd.erase(ns, ln);
                 }
@@ -162,19 +162,9 @@ public:
             }
             return cmd;
         }
-        int run_command(string command) {
-            string subcmd;
-            int state = 0;
-            for (int i = 0; i < command.size(); i++) {
-                if (state == 0 && command[i] != ' ')
-                    state = 1;
-                if (state == 1 && command[i] == ' ')
-                    state = 2;
-                if (state == 2 && command[i] != ' ') {
-                    subcmd = command.substr(i, MAXN);
-                    break;
-                }
-            }
+        int run(string command) {
+            command = compile_quote(command);
+            string subcmd = subcommand(command);
             stringstream rtcmdpe(command);
             string rootcmd;
             rtcmdpe >> rootcmd;

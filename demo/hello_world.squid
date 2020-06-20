@@ -1,0 +1,25 @@
+#This demo shows:
+#Select structure, Variable operation
+
+var new a
+#Create a variable
+
+settings m sendLog off
+#Turn off the log message outputing
+
+if $<a> is 0
+    output Hello world!
+    #The default valve of new variable is 0
+(endif)
+
+var operation a set 1
+#set 'a' to 1
+if $<a> is 1
+    output ª∂”≠ π”√Squid!
+(endif)
+
+if 1 is 2
+    output This command will not run
+(endif)
+var undef a
+#Delete the variable 'a'

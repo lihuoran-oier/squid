@@ -1,0 +1,14 @@
+#This demo shows:
+#Loop & Select structure, Variable operation, Quotes
+
+settings m sendLog off
+settings m sendWarn off
+var new sec
+system cls
+output The time is:@<endl>@<sysTime>
+if $<sec> <= 5
+    var ope sec + 1
+    wait 990
+    loop
+(endif)
+var del sec
