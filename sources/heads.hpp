@@ -9,4 +9,4 @@
 #include<map>
 #include<cstdio>
 using namespace std;
-#include "squidlib.hpp"
+#include "squidLang_lib.hpp"
