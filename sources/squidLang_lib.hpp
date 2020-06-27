@@ -15,9 +15,9 @@ std::string _tempgstd(void) {
 }
 std::ofstream logFile(("logs/" + _tempgstd() + ".log").c_str());
 
-namespace squidlanglib {
+namespace sll {
         bool ifstate_now() {
-            if (ifstatu.size() == 0) return true;
+            if (ifstatu.empty()) return true;
             _tIfstate stt = ifstatu.top();
             int oprter = 0;
             if (stt.oprt == ">" || stt.oprt == "is_bigger_than")
@@ -160,5 +160,5 @@ namespace squidlanglib {
     void regcmd(std::string cmdstr, Fp cmdfp) {
         cmd_register.insert(make_pair(cmdstr, cmdfp));
     }
-
+    int endifed = 0;
 }
