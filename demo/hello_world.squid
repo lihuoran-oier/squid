@@ -1,11 +1,11 @@
 #This demo shows:
 #Select structure, Variable operation
 
-var new a
-#Create a variable
-
 settings m sendLog off
 #Turn off the log message outputing
+
+var new a
+#Create a variable
 
 if $<a> is 0
     output Hello world!

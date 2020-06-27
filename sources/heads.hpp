@@ -14,4 +14,8 @@ struct _tIfstate {
     std::string oprt;
     bool enable = false;
 };
+struct tVar {
+    std::string name;
+    double valve = 0;
+};
 #include "squidLang_lib.hpp"

@@ -63,7 +63,7 @@ namespace squidlanglib {
         struct tcLSett {
             bool sendLog = true;
             bool sendWarn = true;
-            bool systemCommandScriptWarn = true;
+            bool safeMode = true;
         }   settings;
         void sendLog(std::string msg) {
             if (settings.sendLog) std::cout << "[LOG] " << msg << std::endl;

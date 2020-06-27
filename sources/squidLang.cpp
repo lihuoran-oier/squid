@@ -9,9 +9,9 @@ int _Settings_cmd(std::string subcmd) {
     cmdvcp >> rc >> sett >> state;
     if (rc == "m" || rc == "modify") {
         if (sett == "sendLog") {
-            if (state == "on" || state == "true")
+            if (state == "on" || state == "true" || state == "1")
                 squidlanglib::settings.sendLog = true;
-            else if (state == "off" || state == "false")
+            else if (state == "off" || state == "false" || state == "0")
                 squidlanglib::settings.sendLog = false;
             else {
                 squidlanglib::sendError("Unknown state '" + state + "'");
@@ -19,20 +19,20 @@ int _Settings_cmd(std::string subcmd) {
             }
         }
         else if (sett == "sendWarn") {
-            if (state == "on" || state == "true")
+            if (state == "on" || state == "true" || state == "1")
                 squidlanglib::settings.sendWarn = true;
-            else if (state == "off" || state == "false")
+            else if (state == "off" || state == "false" || state == "0")
                 squidlanglib::settings.sendWarn = false;
             else {
                 squidlanglib::sendError("Unknown state '" + state + "'");
                 return 0;
             }
         }
-        else if (sett == "systemCommandScriptWarn") {
-            if (state == "on" || state == "true")
-                squidlanglib::settings.systemCommandScriptWarn = true;
-            else if (state == "off" || state == "false")
-                squidlanglib::settings.systemCommandScriptWarn = false;
+        else if (sett == "safeMode") {
+            if (state == "on" || state == "true" || state == "1")
+                squidlanglib::settings.safeMode = true;
+            else if (state == "off" || state == "false" || state == "0")
+                squidlanglib::settings.safeMode = false;
             else {
                 squidlanglib::sendError("Unknown state '" + state + "'");
                 return 0;
@@ -51,12 +51,12 @@ int _Settings_cmd(std::string subcmd) {
             msgtemp << "sendLog = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.sendLog);
         else if (sett == "sendWarn")
             msgtemp << "sendWarn = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.sendWarn);
-        else if (sett == "systemCommandScriptWarn")
-            msgtemp << "systemCommandScriptWarn = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.systemCommandScriptWarn);
+        else if (sett == "safeMode")
+            msgtemp << "safeMode = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.safeMode);
         else if (sett == "all" || sett == "*")
             msgtemp << "sendLog = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.sendLog) << std::endl
             << "sendWarn = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.sendWarn) << std::endl
-            << "systemCommandScriptWarn = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.systemCommandScriptWarn);
+            << "safeMode = " << squidlanglib::atob<bool, std::string>(squidlanglib::settings.safeMode);
         else {
             squidlanglib::sendError("Unknown setting option '" + sett + "'");
             return 0;
@@ -282,14 +282,18 @@ int main(int argc, char* argv[])
         }
     }
     //从启动参数执行脚本
-    std::string path("runfile ");
-    path.append(argv[1]);
-    if (argc >= 2)
-        if (squidlanglib::command.run(path) == EXIT_MAIN)
-            return 0;
-    if (argc == 1) {
-        system("title SquidLang Beta v0.2 - By MineCommander");
-        squidlanglib::sendOutput("SquidLang Beta  v0b2\nCopyright MineCommander (C) 2020", false);
+    if (argc >= 2) {
+        std::fstream ftest(argv[1]);
+        if (ftest) {
+            std::string path("runfile ");
+            path.append(argv[1]);
+            if (squidlanglib::command.run(path) == EXIT_MAIN)
+                return 0;
+        }
+    }
+    else {
+        system("title SquidLang Beta v0.3 - By MineCommander");
+        squidlanglib::sendOutput("SquidLang Beta  v0b3\nCopyright MineCommander (C) 2020", false);
     }
     std::string inp_com;
     while(1)
