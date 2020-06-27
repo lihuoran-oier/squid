@@ -5,17 +5,7 @@
 #include<sstream>
 #include<cmath>
 #include<vector>
-#include<stack>
 #include<ctime>
 #include<map>
 #include<cstdio>
-struct _tIfstate {
-    float x1 = 0, x2 = 0;
-    std::string oprt;
-    bool enable = false;
-};
-struct tVar {
-    std::string name;
-    double valve = 0;
-};
 #include "squidLang_lib.hpp"

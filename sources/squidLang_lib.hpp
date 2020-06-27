@@ -1,90 +1,96 @@
-const int EXIT_MAIN = 65536;
-const int IFSTATES_FALSE = 100001;
-const int MAXN = 2147483647;
 typedef int(*Fp)(std::string subcmd);
 
-std::map<std::string, Fp> cmd_register;
-std::map<std::string, double> var_list;
-std::stack<_tIfstate> ifstatu;
-
-std::string _tempgstd(void) {
-    time_t t = time(0);
-    char tmp[64];
-    strftime(tmp, sizeof(tmp), "%Y%m%d-%H%M%S", localtime(&t));
-    return tmp;
-}
-std::ofstream logFile(("logs/" + _tempgstd() + ".log").c_str());
-
 namespace sll {
-        bool ifstate_now() {
-            if (ifstatu.empty()) return true;
-            _tIfstate stt = ifstatu.top();
-            int oprter = 0;
-            if (stt.oprt == ">" || stt.oprt == "is_bigger_than")
-                oprter = 1;
-            else if (stt.oprt == ">=" || stt.oprt == "isnot_less_than")
-                oprter = 2;
-            else if (stt.oprt == "<" || stt.oprt == "is_less_than")
-                oprter = 3;
-            else if (stt.oprt == "<=" || stt.oprt == "isnot_bigger_than")
-                oprter = 4;
-            else if (stt.oprt == "=" || stt.oprt == "==" || stt.oprt == "is")
-                oprter = 5;
-            else if (stt.oprt == "!=" || stt.oprt == "isnot")
-                oprter = 6;
-            return (stt.x1 > stt.x2 && oprter == 1)
+
+    struct _tIfstate {
+        float x1 = 0, x2 = 0;
+        std::string oprt;
+        bool enable = false;
+    };
+    struct tVar {
+        std::string name;
+        double valve = 0;
+    };
+    const int EXIT_MAIN = 65536;
+    const int IFSTATES_FALSE = 100001;
+    const int MAXN = 2147483647;
+    std::map<std::string, Fp> cmd_register;
+    std::map<std::string, double> var_list;
+    std::vector<_tIfstate> ifstatu;
+    bool j_ifstate(_tIfstate stt) {
+        int oprter = 0;
+        if (stt.oprt == ">" || stt.oprt == "is_bigger_than")
+            oprter = 1;
+        else if (stt.oprt == ">=" || stt.oprt == "isnot_less_than")
+            oprter = 2;
+        else if (stt.oprt == "<" || stt.oprt == "is_less_than")
+            oprter = 3;
+        else if (stt.oprt == "<=" || stt.oprt == "isnot_bigger_than")
+            oprter = 4;
+        else if (stt.oprt == "=" || stt.oprt == "==" || stt.oprt == "is")
+            oprter = 5;
+        else if (stt.oprt == "!=" || stt.oprt == "isnot")
+            oprter = 6;
+        return (stt.x1 > stt.x2 && oprter == 1)
             || (stt.x1 >= stt.x2 && oprter == 2)
-            || (stt.x1 < stt.x2 && oprter == 3)
+            || (stt.x1 < stt.x2&& oprter == 3)
             || (stt.x1 <= stt.x2 && oprter == 4)
             || (stt.x1 == stt.x2 && oprter == 5)
             || (stt.x1 != stt.x2 && oprter == 6);
+    }
+    bool ifstate_now() {
+        if (ifstatu.empty()) return true;
+        for (std::vector<_tIfstate>::iterator i = ifstatu.begin(); i != ifstatu.end(); i++) {
+            if (!j_ifstate(*i)) return false;
         }
-        std::string getSysTimeData(void) {
-            time_t t = time(0);
-            char tmp[64];
-            strftime(tmp, sizeof(tmp), "%Y%m%d-%H%M%S", localtime(&t));
-            return tmp;
-        }
-        std::string getSysTime(void) {
-            time_t t = time(0);
-            char tmp[64];
-            strftime(tmp, sizeof(tmp), "%H:%M:%S", localtime(&t));
-            return tmp;
-        }
-
-        template <class Ta, class Tb>
-        Tb atob(const Ta& t) {
-            std::stringstream temp;
-            temp << t;
-            Tb i;
-            temp >> i;
-            return i;
-        }
-        struct tcLSett {
-            bool sendLog = true;
-            bool sendWarn = true;
-            bool safeMode = true;
-        }   settings;
-        void sendLog(std::string msg) {
-            if (settings.sendLog) std::cout << "[LOG] " << msg << std::endl;
-            logFile << "[" << getSysTime() << "][LOG] " << msg << std::endl;
-        }
-        void sendWarn(std::string msg) {
-            if (settings.sendWarn) std::cout << "[WARN] " << msg << std::endl;
-            logFile << "[" << getSysTime() << "][WARN] " << msg << std::endl;
-        }
-        void sendError(std::string msg) {
-            std::cout << "[ERROR] " << msg << std::endl;
-            logFile << "[" << getSysTime() << "][ERROR] " << msg << std::endl;
-        }
-        void sendInfo(std::string msg) {
-            std::cout << "[INFO] " << msg << std::endl;
-            logFile << "[" << getSysTime() << "][INFO] " << msg << std::endl;
-        }
-        void sendOutput(std::string msg, bool log) {
-            std::cout << msg << std::endl;
-            if (log) logFile << "[" << getSysTime() << "][OUTPUT] " << msg << std::endl;
-        }
+        return true;
+    }
+    std::string getSysTimeData(void) {
+        time_t t = time(0);
+        char tmp[64];
+        strftime(tmp, sizeof(tmp), "%Y%m%d-%H%M%S", localtime(&t));
+        return tmp;
+    }
+    std::string getSysTime(void) {
+        time_t t = time(0);
+        char tmp[64];
+        strftime(tmp, sizeof(tmp), "%H:%M:%S", localtime(&t));
+        return tmp;
+    }
+    std::fstream logFile(("logs/" + getSysTimeData() + ".log").c_str(), std::ios::out);
+    template <class Ta, class Tb>
+    Tb atob(const Ta& t) {
+        std::stringstream temp;
+        temp << t;
+        Tb i;
+        temp >> i;
+        return i;
+    }
+    struct tcLSett {
+        bool sendLog = true;
+        bool sendWarn = true;
+        bool safeMode = true;
+    }   settings;
+    void sendLog(std::string msg) {
+        if (settings.sendLog) std::cout << "[LOG] " << msg << std::endl;
+        logFile << "[" << getSysTime() << "][LOG] " << msg << std::endl;
+    }
+    void sendWarn(std::string msg) {
+        if (settings.sendWarn) std::cout << "[WARN] " << msg << std::endl;
+        logFile << "[" << getSysTime() << "][WARN] " << msg << std::endl;
+    }
+    void sendError(std::string msg) {
+        std::cout << "[ERROR] " << msg << std::endl;
+        logFile << "[" << getSysTime() << "][ERROR] " << msg << std::endl;
+    }
+    void sendInfo(std::string msg) {
+        std::cout << "[INFO] " << msg << std::endl;
+        logFile << "[" << getSysTime() << "][INFO] " << msg << std::endl;
+    }
+    void sendOutput(std::string msg, bool log) {
+        std::cout << msg << std::endl;
+        if (log) logFile << "[" << getSysTime() << "][OUTPUT] " << msg << std::endl;
+    }
 
     class tcSqLCmd {
     private:
@@ -154,11 +160,10 @@ namespace sll {
             else {
                 sendError("Unknown command '" + rootcmd + "'");
             }
-
+            return 0;
         }
     }   command;
     void regcmd(std::string cmdstr, Fp cmdfp) {
         cmd_register.insert(make_pair(cmdstr, cmdfp));
     }
-    int endifed = 0;
 }
