@@ -2,7 +2,7 @@
 std::string exePath;
 //===添加命令处理函数开始===//
 
-int _Settings_cmd(std::string subcmd) {
+int _Settings_cmd(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     std::stringstream cmdvcp(subcmd);
     std::string rc, sett, state;
@@ -68,22 +68,22 @@ int _Settings_cmd(std::string subcmd) {
     }
     return 0;
 }
-int _System_sqcmd(std::string subcmd) {
+int _System_sqcmd(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     sll::sendLog("Run system command");
     system(subcmd.c_str());
     return 0;
 }
-int output(std::string subcmd) {
+int output(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     sll::sendOutput(subcmd, true);
     return 0;
 }
-int _Exit_sqcmd(std::string subcmd) {
+int _Exit_sqcmd(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     return sll::EXIT_MAIN;
 }
-int runfile(std::string subcmd) {
+int runfile(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     std::string temp;
     std::vector<std::string> cmdlines;
@@ -125,7 +125,7 @@ loopagain:
     }
     return 0;
 }
-int _Var_sqcmd(std::string subcmd) {
+int _Var_sqcmd(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     std::string temp_rc;
     std::string temp_cg1;
@@ -215,7 +215,7 @@ int _Var_sqcmd(std::string subcmd) {
     }
     return 0;
 }
-int _If_sqcmd(std::string subcmd) { 
+int _If_sqcmd(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     std::stringstream comps(subcmd);
     sll::_tIfstate temp;
@@ -223,11 +223,11 @@ int _If_sqcmd(std::string subcmd) {
     sll::ifstatu.push_back(temp);
     return 0;
 }
-int _Endif_sqcmd(std::string subcmd) {
+int _Endif_sqcmd(int argc, std::vector<std::string>::iterator argv) {
     if(!sll::ifstatu.empty()) sll::ifstatu.pop_back();
     return 0;
 }
-int _Waitfor_sqcmd(std::string subcmd) {
+int _Waitfor_sqcmd(int argc, std::vector<std::string>::iterator argv) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     int tm = sll::atob<std::string, int>(subcmd);
     clock_t st;
@@ -251,24 +251,22 @@ int _Waitfor_sqcmd(std::string subcmd) {
 void regist_command(void) { //注册命令
     sll::cmd_register.clear();
 
-    sll::regcmd("settings", _Settings_cmd);
-    sll::regcmd("system", _System_sqcmd);
-    sll::regcmd("output", output);
-    sll::regcmd("print", output);
-    sll::regcmd("echo", output);
-    sll::regcmd("exit", _Exit_sqcmd);
-    sll::regcmd("runfile", runfile);
-    sll::regcmd("script", runfile);
-    sll::regcmd("scr", runfile);
-    sll::regcmd("var", _Var_sqcmd);
-    sll::regcmd("variable", _Var_sqcmd);
-    sll::regcmd("if", _If_sqcmd);
-    sll::regcmd("(endif)", _Endif_sqcmd);
-    sll::regcmd("wait", _Waitfor_sqcmd);
+    sll::regcmd("settings", _Settings_cmd,  4, slt::tArgcp::less);
+    sll::regcmd("system",   _System_sqcmd,  2, slt::tArgcp::mustmatch);
+    sll::regcmd("output",   output,         2, slt::tArgcp::mustmatch);
+    sll::regcmd("print",    output,         2, slt::tArgcp::mustmatch);
+    sll::regcmd("echo",     output,         2, slt::tArgcp::mustmatch);
+    sll::regcmd("exit",     _Exit_sqcmd,    1, slt::tArgcp::mustmatch);
+    sll::regcmd("runfile",  runfile,        2, slt::tArgcp::mustmatch);
+    sll::regcmd("script",   runfile,        2, slt::tArgcp::mustmatch);
+    sll::regcmd("scr",      runfile,        2, slt::tArgcp::mustmatch);
+    sll::regcmd("var",      _Var_sqcmd,     5, slt::tArgcp::less);
+    sll::regcmd("variable", _Var_sqcmd,     5, slt::tArgcp::less);
+    sll::regcmd("if",       _If_sqcmd,      4, slt::tArgcp::mustmatch);
+    sll::regcmd("(endif)",  _Endif_sqcmd,   1, slt::tArgcp::mustmatch);
+    sll::regcmd("wait",     _Waitfor_sqcmd, 2, slt::tArgcp::mustmatch);
     /*
-        请使用这个格式来注册命令：
-        sll::regcmd("根命令字符串", 函数名指针);
-        若执行的根命令与字符串匹配，将会调用函数名指针指向的函数。
+        请参照sll::regcmd函数的用法来注册命令。
     */
 }
 
@@ -300,7 +298,7 @@ int main(int argc, char* argv[])
     while(1)
     {
         std::cout << ">>>";
-        std::getline(std::cin,inp_com);
+        std::getline(std::cin, inp_com);
         if (sll::command.run(inp_com) == sll::EXIT_MAIN)
             return 0;
     }

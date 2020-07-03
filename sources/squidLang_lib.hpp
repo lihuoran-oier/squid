@@ -1,7 +1,12 @@
-typedef int(*Fp)(std::string subcmd);
-
+typedef int(*Fp)(int argc,std::vector<std::string>::iterator argv);
+namespace slt {
+    enum tArgcp {
+        mustmatch = 0,
+        less = -1,
+        more = 1,
+    };
+}
 namespace sll {
-
     struct _tIfstate {
         float x1 = 0, x2 = 0;
         std::string oprt;
@@ -14,7 +19,13 @@ namespace sll {
     const int EXIT_MAIN = 65536;
     const int IFSTATES_FALSE = 100001;
     const int MAXN = 2147483647;
-    std::map<std::string, Fp> cmd_register;
+    struct tCmdreg {
+        std::string rootcmd;
+        Fp func;
+        int argc;
+        slt::tArgcp argcp;
+    };
+    std::vector<tCmdreg> cmd_register;
     std::map<std::string, double> var_list;
     std::vector<_tIfstate> ifstatu;
     bool j_ifstate(_tIfstate stt) {
@@ -112,7 +123,7 @@ namespace sll {
         std::string compile_quote(std::string cmd)
         {
             std::string varname;
-            int state = 0;
+            short state = 0;
             char type;
             int ns = 0, ne = cmd.size() - 1;
             for (int i = 0; i < cmd.size(); i++) {
@@ -149,21 +160,47 @@ namespace sll {
             }
             return cmd;
         }
-        int run(std::string command) {
+        int run(std::string command) {  //v0b3新功能：直接解析一串多行原始文本
             command = compile_quote(command);
-            std::string subcmd = subcommand(command);
-            std::stringstream rtcmdpe(command);
-            std::string rootcmd;
-            rtcmdpe >> rootcmd;
-            if (cmd_register.count(rootcmd) == 1)
-                return cmd_register[rootcmd](subcmd);
-            else {
-                sendError("Unknown command '" + rootcmd + "'");
+            std::vector<std::string> cmdlines;
+            std::string temp;
+            bool state = false;
+            for (int i = 0; i < command.size(); i++) {
+                if (command[i] == '\n') {
+                    if (!temp.empty() && temp[0] != '#') cmdlines.push_back(temp);
+                    state = false;
+                    break;
+                }
+                if (!state && command[i] == ' ')
+                    ;
+                if (!state && command[i] != ' ') {
+                    state = true;
+                    temp.push_back(command[i]);
+                }
+                else if (state && command[i] != ' ') {
+                    temp.push_back(command[i]);
+                }
+                if (state && command[i] == ' ') {
+                    state = false;
+                    temp.push_back(command[i]);
+                }
+            }
+            for (std::vector<std::string>::iterator i = cmdlines.begin(); i != cmdlines.end(); i++) {
+
             }
             return 0;
         }
     }   command;
-    void regcmd(std::string cmdstr, Fp cmdfp) {
-        cmd_register.insert(make_pair(cmdstr, cmdfp));
+    void regcmd(std::string cmdstr, //根命令字符串
+                Fp cmdfp,           //函数指针
+                int argc,           //需要的参数数量
+                slt::tArgcp argcp) {      /*  参数数量判断条件。
+                                        slt::tArgcp::mustmatch为必须匹配argc，
+                                        slt::tArgcp::less为必须小于等于argc，
+                                        slt::tArgcp::more为必须大于等于argc，
+                                        如果输入了错误数量的参数数量将会报错。
+                                    */
+        tCmdreg temp{ cmdstr,cmdfp,argc,argcp };
+        cmd_register.push_back(temp);
     }
 }

@@ -8,4 +8,7 @@
 #include<ctime>
 #include<map>
 #include<cstdio>
+namespace slt {
+	int cplProgress = 0;
+}
 #include "squidLang_lib.hpp"
