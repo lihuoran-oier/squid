@@ -1,4 +1,4 @@
-typedef int(*Fp)(int argc,std::vector<std::string>::iterator argv);
+typedef int(*Fp)(const std::vector<std::string>& args);
 namespace slt {
     enum tArgcp {
         mustmatch = 0,
@@ -10,7 +10,6 @@ namespace sll {
     struct _tIfstate {
         float x1 = 0, x2 = 0;
         std::string oprt;
-        bool enable = false;
     };
     struct tVar {
         std::string name;
@@ -107,19 +106,6 @@ namespace sll {
     private:
         std::string quotetypes = "@$";
     public:
-        std::string subcommand(std::string command)
-        {
-            int state = 0;
-            for (int i = 0; i < command.size(); i++) {
-                if (command[i] != ' ' && state == 0)
-                    state = 1;
-                else if (command[i] == ' ' && state == 1)
-                    state = 2;
-                else if (command[i] != ' ' && state == 2)
-                    return command.substr(i, command.size());
-            }
-            return "";
-        }
         std::string compile_quote(std::string cmd)
         {
             std::string varname;
@@ -161,32 +147,77 @@ namespace sll {
             return cmd;
         }
         int run(std::string command) {  //v0b3新功能：直接解析一串多行原始文本
-            command = compile_quote(command);
-            std::vector<std::string> cmdlines;
-            std::string temp;
-            bool state = false;
+            command += "\n";
+            typedef std::vector<std::string> lcmd;
+            std::vector<lcmd> cmdlines;
+            lcmd temp;
+            short state = 1;
+            lcmd::iterator li = temp.begin();
             for (int i = 0; i < command.size(); i++) {
                 if (command[i] == '\n') {
-                    if (!temp.empty() && temp[0] != '#') cmdlines.push_back(temp);
-                    state = false;
-                    break;
+                    if (!temp.empty() && temp[0].at(0) != '#') cmdlines.push_back(temp);
+                    state = 1;
+                    temp.clear(); li = temp.begin();
+                    continue;
                 }
-                if (!state && command[i] == ' ')
-                    ;
-                if (!state && command[i] != ' ') {
-                    state = true;
-                    temp.push_back(command[i]);
+
+                if (state == 1) {
+                    if (command[i] == ' ')
+                        li = temp.end();
+                    else {
+                        if (command[i] == '"') {
+                            state = 2;
+                            continue;
+                        }
+                        else {
+                            state = 0;
+                            li->push_back(command[i]);
+                            continue;
+                        }
+                    }
                 }
-                else if (state && command[i] != ' ') {
-                    temp.push_back(command[i]);
-                }
-                if (state && command[i] == ' ') {
-                    state = false;
-                    temp.push_back(command[i]);
+
+                if (state == 2)
+                    if (command[i] != '"')
+                        li->push_back(command[i]);
+                    else {
+                        state = 0; continue;
+                    }
+
+                if (state == 0) {
+                    if (command[i] != ' ')
+                        li->push_back(command[i]);
+                    else {
+                        state = 1;
+                        li = temp.end();
+                    }
                 }
             }
-            for (std::vector<std::string>::iterator i = cmdlines.begin(); i != cmdlines.end(); i++) {
-
+            for (std::vector<lcmd>::iterator i = cmdlines.begin(); i != cmdlines.end(); i++) {
+                for (lcmd::iterator j = i->begin(); j != i->end(); j++) {
+                    *j = compile_quote(*j);
+                }
+                for (std::vector<tCmdreg>::iterator cf = cmd_register.begin(); cf != cmd_register.end(); cf++) {
+                    if (cf->rootcmd == i->at(0)) {
+                        if (
+                            (cf->argc == i->size() && cf->argcp == 0)
+                            || (cf->argc >= i->size() && cf->argcp > 0)
+                            || (cf->argc <= i->size() && cf->argcp < 0)
+                            ) {
+                            if (cf->func(*i) == EXIT_MAIN)
+                                return EXIT_MAIN;
+                        }
+                        else {
+                            std::stringstream msgtemp;
+                            msgtemp << "Incorrect parameters count " << i->size() << " but needed " << cf->argc;
+                            if (cf->argcp > 0)
+                                msgtemp << " or MORE";
+                            if (cf->argcp < 0)
+                                msgtemp << " or LESS";
+                            sendError(msgtemp.str());
+                        }
+                    }
+                }
             }
             return 0;
         }
@@ -195,9 +226,9 @@ namespace sll {
                 Fp cmdfp,           //函数指针
                 int argc,           //需要的参数数量
                 slt::tArgcp argcp) {      /*  参数数量判断条件。
-                                        slt::tArgcp::mustmatch为必须匹配argc，
-                                        slt::tArgcp::less为必须小于等于argc，
-                                        slt::tArgcp::more为必须大于等于argc，
+                                        argcp_ mustmatch为必须匹配argc，
+                                        argcp_ less为必须小于等于argc，
+                                        argcp_ more为必须大于等于argc，
                                         如果输入了错误数量的参数数量将会报错。
                                     */
         tCmdreg temp{ cmdstr,cmdfp,argc,argcp };
