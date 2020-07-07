@@ -1,4 +1,5 @@
-typedef int(*Fp)(const std::vector<std::string>& args);
+typedef std::vector<std::string> lcmd;
+typedef int(*Fp)(const lcmd& args);
 namespace slt {
     enum tArgcp {
         mustmatch = 0,
@@ -146,53 +147,51 @@ namespace sll {
             }
             return cmd;
         }
-        int run(std::string command) {  //v0b3ÐÂ¹¦ÄÜ£ºÖ±½Ó½âÎöÒ»´®¶àÐÐÔ­Ê¼ÎÄ±¾
+        int run(const std::string &command) {  //v0b3ï¿½Â¹ï¿½ï¿½Ü£ï¿½Ö±ï¿½Ó½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô­Ê¼ï¿½Ä±ï¿½
             command += "\n";
-            typedef std::vector<std::string> lcmd;
             std::vector<lcmd> cmdlines;
-            lcmd temp;
-            short state = 1;
-            lcmd::iterator li = temp.begin();
-            for (int i = 0; i < command.size(); i++) {
-                if (command[i] == '\n') {
-                    if (!temp.empty() && temp[0].at(0) != '#') cmdlines.push_back(temp);
-                    state = 1;
-                    temp.clear(); li = temp.begin();
-                    continue;
-                }
-
-                if (state == 1) {
-                    if (command[i] == ' ')
-                        li = temp.end();
-                    else {
-                        if (command[i] == '"') {
-                            state = 2;
-                            continue;
-                        }
-                        else {
-                            state = 0;
-                            li->push_back(command[i]);
-                            continue;
-                        }
-                    }
-                }
-
-                if (state == 2)
-                    if (command[i] != '"')
-                        li->push_back(command[i]);
-                    else {
-                        state = 0; continue;
-                    }
-
-                if (state == 0) {
-                    if (command[i] != ' ')
-                        li->push_back(command[i]);
-                    else {
-                        state = 1;
-                        li = temp.end();
-                    }
-                }
+            lcmd ltemp;
+            std::string strbuf;
+            char state = 0;
+            for (std::string::iterator li = command.begin(); li != command.end(); li++) {
+            	if (*li == '\n') {
+            		if (!strbuf.empty()) {
+            			ltemp.push_back(strbuf);
+            			strbuf.clear();
+            		}
+            		state = 0;
+            		if (!ltemp.empty() && ltemp[0].at(0) != '#') {
+            	    	cmdlines.push_back(ltemp);
+            	    	ltemp.clear();
+            		}
+            	}
+            	else if (state = 0) {
+            		if (*li == ' ')
+            		    if (!strbuf.empty()) {
+            		    	ltemp.push_back(strbuf);
+            		    	strbuf.clear();
+            		    }
+            		else if (*li == '"') {
+            			if (!strbuf.empty()) {
+            		    	ltemp.push_back(strbuf);
+            		    	strbuf.clear();
+            		    }
+            		    state = 1;
+            		}
+            		else strbuf.push_back(*li);
+            	}
+            	else if (state == 1) {
+        		    if (*li == '"') {
+        	    		if (!strbuf.empty()) {
+            		        ltemp.push_back(strbuf);
+            	    	    strbuf.clear();
+            	    	}
+            	    	state = 0;
+        	    	}
+        	    	else strbuf.push_back(*li);
+            	}
             }
+            
             for (std::vector<lcmd>::iterator i = cmdlines.begin(); i != cmdlines.end(); i++) {
                 for (lcmd::iterator j = i->begin(); j != i->end(); j++) {
                     *j = compile_quote(*j);
@@ -222,14 +221,14 @@ namespace sll {
             return 0;
         }
     }   command;
-    void regcmd(std::string cmdstr, //¸ùÃüÁî×Ö·û´®
-                Fp cmdfp,           //º¯ÊýÖ¸Õë
-                int argc,           //ÐèÒªµÄ²ÎÊýÊýÁ¿
-                slt::tArgcp argcp) {      /*  ²ÎÊýÊýÁ¿ÅÐ¶ÏÌõ¼þ¡£
-                                        argcp_ mustmatchÎª±ØÐëÆ¥Åäargc£¬
-                                        argcp_ lessÎª±ØÐëÐ¡ÓÚµÈÓÚargc£¬
-                                        argcp_ moreÎª±ØÐë´óÓÚµÈÓÚargc£¬
-                                        Èç¹ûÊäÈëÁË´íÎóÊýÁ¿µÄ²ÎÊýÊýÁ¿½«»á±¨´í¡£
+    void regcmd(std::string cmdstr, //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½
+                Fp cmdfp,           //ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+                int argc,           //ï¿½ï¿½Òªï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                slt::tArgcp argcp) {      /*  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                                        argcp_ mustmatchÎªï¿½ï¿½ï¿½ï¿½Æ¥ï¿½ï¿½argcï¿½ï¿½
+                                        argcp_ lessÎªï¿½ï¿½ï¿½ï¿½Ð¡ï¿½Úµï¿½ï¿½ï¿½argcï¿½ï¿½
+                                        argcp_ moreÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½argcï¿½ï¿½
+                                        ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á±¨ï¿½ï¿½
                                     */
         tCmdreg temp{ cmdstr,cmdfp,argc,argcp };
         cmd_register.push_back(temp);
