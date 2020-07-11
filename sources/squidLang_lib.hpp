@@ -1,12 +1,5 @@
 typedef std::vector<std::string> lcmd;
 typedef int(*Fp)(const lcmd &args);
-namespace slt {
-    enum tArgcp {
-        mustmatch = 0,
-        less = -1,
-        more = 1,
-    };
-}
 namespace sll {
     struct _tIfstate {
         float x1 = 0, x2 = 0;
@@ -22,8 +15,8 @@ namespace sll {
     struct tCmdreg {
         std::string rootcmd;
         Fp func;
-        int argc;
-        slt::tArgcp argcp;
+        int argcMin;
+        int argcMax;
     };
     std::vector<tCmdreg> cmd_register;
     std::map<std::string, double> var_list;
@@ -114,7 +107,7 @@ namespace sll {
             char type;
             int ns = 0, ne = cmd.size() - 1;
             for (int i = 0; i < cmd.size(); i++) {
-                if (quotetypes.find(cmd.substr(i, 1)) != std::string::npos && cmd[i + 1] == '<') {
+                if (quotetypes.find(cmd.substr(i, 1)) != std::string::npos && cmd[i + 1] == '{') {
                     type = cmd[i];
                     varname.clear();
 
@@ -122,7 +115,7 @@ namespace sll {
                     ns = i;
                     i += 2;
                 }
-                else if (state == 1 && cmd[i] == '>') {
+                else if (state == 1 && cmd[i] == '}') {
                     state = 2;
                     ne = i;
                     break;
@@ -197,43 +190,32 @@ namespace sll {
                 for (lcmd::iterator j = i->begin(); j != i->end(); j++) {
                     *j = compile_quote(*j);
                 }
+                bool scfl = false;
                 for (std::vector<tCmdreg>::iterator cf = cmd_register.begin(); cf != cmd_register.end(); cf++) {
                     if (cf->rootcmd == (*i)[0]) {
-                        if (
-                            ((cf->argc == i->size()) && (cf->argcp == 0))
-                            || ((cf->argc >= i->size()) && (cf->argcp > 0))
-                            || ((cf->argc <= i->size()) && (cf->argcp < 0))
-                            ) {
+                    	scfl = true;
+                        if (i->size() >= cf->argcMin && i->size() <= cf->argcMax) {
                             if (cf->func(*i) == EXIT_MAIN)
                                 return EXIT_MAIN;
                         }
                         else {
                             std::stringstream msgtemp;
-                            msgtemp << "Incorrect parameters count " << i->size() << " but needed " << cf->argc;
-                            if (cf->argcp > 0)
-                                msgtemp << " or MORE";
-                            if (cf->argcp < 0)
-                                msgtemp << " or LESS";
+                            msgtemp << "Incorrect parameters count: Detected " << i->size() << " but needed [" << cf->argcMin << "," << cf->argcMax << "]";
                             sendError(msgtemp.str());
-                            return 1;
                         }
                     }
                 }
-                if (!i->empty()) sendError("Unknown command '" + (*i)[0] + "'");
+                if (!i->empty() && !scfl) sendError("Unknown command '" + (*i)[0] + "'");
             }
             return 0;
         }
     }   command;
     void regcmd(std::string cmdstr, //根目录字符串
                 Fp cmdfp,           //函数指针
-                int argc,           //需要的参数数量
-                slt::tArgcp argcp) {      /*  参数数量的判断条件：
-                                        nArgcp mustmatch 传递的参数数量必须与argc相同；
-                                        nArgcp less      传递的参数数量必须小于等于argc；
-                                        nArgcp more      传递的参数数量必须大于等于argc。
-                                        执行条件时若传递了错误数量的参数将会报错。
-                                    */
-        tCmdreg temp{ cmdstr,cmdfp,argc,argcp };
+                int argcMin,        //需要的最少参数数量
+                int argcMax) {      //需要的最大参数数量
+                                    //若参数数量不处于[argcMin,argcMax]中将会报错。
+        tCmdreg temp{ cmdstr,cmdfp,argcMin,argcMax };
         cmd_register.push_back(temp);
     }
 }
