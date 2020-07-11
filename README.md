@@ -29,4 +29,4 @@ SquidLang并不一定要作为一款编程语言使用，他也可以成为一�
   注：Android平台运行控制台应用需要终端模拟器应用支持。
 
 ## 教程
-你可以访问作者的知乎专栏查看教程文章：(Coming Soon)
+你可以访问本仓库的Wiki页面来阅读squidLang使用教程，或是直接[点击此处](https://github.com/MineCommanderCN/squidLang/wiki)。
