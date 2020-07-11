@@ -1,6 +1,5 @@
 #include "heads.hpp"
 std::string exePath;
-#define nArgcp slt::tArgcp::
 //===添加命令处理函数开始===//
 
 int _Settings_cmd(const lcmd& args) {
@@ -218,20 +217,20 @@ int _Waitfor_sqcmd(const lcmd &args) {
 void regist_command(void) { //注册命令
     sll::cmd_register.clear();
 
-    sll::regcmd("settings", _Settings_cmd,  4, nArgcp less);
-    sll::regcmd("system",   _System_sqcmd,  2, nArgcp mustmatch);
-    sll::regcmd("output",   output,         2, nArgcp mustmatch);
-    sll::regcmd("print",    output,         2, nArgcp mustmatch);
-    sll::regcmd("echo",     output,         2, nArgcp mustmatch);
-    sll::regcmd("exit",     _Exit_sqcmd,    1, nArgcp mustmatch);
-    sll::regcmd("runfile",  runfile,        2, nArgcp mustmatch);
-    sll::regcmd("script",   runfile,        2, nArgcp mustmatch);
-    sll::regcmd("scr",      runfile,        2, nArgcp mustmatch);
-    sll::regcmd("var",      _Var_sqcmd,     5, nArgcp less);
-    sll::regcmd("variable", _Var_sqcmd,     5, nArgcp less);
-    sll::regcmd("if",       _If_sqcmd,      4, nArgcp mustmatch);
-    sll::regcmd("endif",    _Endif_sqcmd,   1, nArgcp mustmatch);
-    sll::regcmd("wait",     _Waitfor_sqcmd, 2, nArgcp mustmatch);
+    sll::regcmd("settings", _Settings_cmd,  3, 4);
+    sll::regcmd("system",   _System_sqcmd,  2, 2);
+    sll::regcmd("output",   output,         2, 2);
+    sll::regcmd("print",    output,         2, 2);
+    sll::regcmd("echo",     output,         2, 2);
+    sll::regcmd("exit",     _Exit_sqcmd,    1, 1);
+    sll::regcmd("runfile",  runfile,        2, 2);
+    sll::regcmd("script",   runfile,        2, 2);
+    sll::regcmd("scr",      runfile,        2, 2);
+    sll::regcmd("var",      _Var_sqcmd,     2, 5);
+    sll::regcmd("variable", _Var_sqcmd,     2, 5);
+    sll::regcmd("if",       _If_sqcmd,      4, 4);
+    sll::regcmd("(endif)",    _Endif_sqcmd,   1, 1);
+    sll::regcmd("wait",     _Waitfor_sqcmd, 2, 2);
     /*
         请参照sll::regcmd函数的用法来注册命令。
     */
