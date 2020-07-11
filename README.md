@@ -10,7 +10,7 @@ SquidLang的设计思路、源码的实现等等都和它本身一样遵循同�
 
 SquidLang命令的表达法与shell有很大的相似之处，同时又结合了MCF，可以尽可能地让更多的人快速上手。
 
-SquidLang并不一定要作为一款编程语言使用，他也可以成为一些软件的命令解析器。你可以看看我的[一个基于SquidLang的项目](https://github.com/MineCommander/to-do-commander)。
+SquidLang并不一定要作为一款编程语言使用，他也可以成为一些软件的命令解析器。你可以看看我的[一个基于SquidLang的项目](https://github.com/MineCommanderCN/to-do-commander)。
 
 ## 下载与安装
 下载Release压缩包解压。
