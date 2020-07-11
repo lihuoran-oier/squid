@@ -1,5 +1,5 @@
 typedef std::vector<std::string> lcmd;
-typedef int(*Fp)(const lcmd& args);
+typedef int(*Fp)(const lcmd &args);
 namespace slt {
     enum tArgcp {
         mustmatch = 0,
@@ -147,7 +147,7 @@ namespace sll {
             }
             return cmd;
         }
-        int run(const std::string &command) {  //v0b3�¹��ܣ�ֱ�ӽ���һ������ԭʼ�ı�
+        int run(std::string command) {  //v0b3新功能：支持解析多行文本
             command += "\n";
             std::vector<lcmd> cmdlines;
             lcmd ltemp;
@@ -165,29 +165,30 @@ namespace sll {
             	    	ltemp.clear();
             		}
             	}
-            	else if (state = 0) {
-            		if (*li == ' ')
-            		    if (!strbuf.empty()) {
-            		    	ltemp.push_back(strbuf);
-            		    	strbuf.clear();
-            		    }
-            		else if (*li == '"') {
-            			if (!strbuf.empty()) {
-            		    	ltemp.push_back(strbuf);
-            		    	strbuf.clear();
-            		    }
-            		    state = 1;
-            		}
-            		else strbuf.push_back(*li);
+            	else if (state == 0) {
+                    if (*li == ' ')
+                        if (!strbuf.empty()) {
+                            ltemp.push_back(strbuf);
+                            strbuf.clear();
+                        }
+                        else;
+                    else if (*li == '"') {
+                        if (!strbuf.empty()) {
+                            ltemp.push_back(strbuf);
+                            strbuf.clear();
+                        }
+                        state = 1;
+                    }
+                    else strbuf.push_back(*li);
             	}
             	else if (state == 1) {
-        		    if (*li == '"') {
-        	    		if (!strbuf.empty()) {
-            		        ltemp.push_back(strbuf);
-            	    	    strbuf.clear();
-            	    	}
-            	    	state = 0;
-        	    	}
+                    if (*li == '"') {
+                        if (!strbuf.empty()) {
+                            ltemp.push_back(strbuf);
+                            strbuf.clear();
+                        }
+                        state = 0;
+                    }
         	    	else strbuf.push_back(*li);
             	}
             }
@@ -197,11 +198,11 @@ namespace sll {
                     *j = compile_quote(*j);
                 }
                 for (std::vector<tCmdreg>::iterator cf = cmd_register.begin(); cf != cmd_register.end(); cf++) {
-                    if (cf->rootcmd == i->at(0)) {
+                    if (cf->rootcmd == (*i)[0]) {
                         if (
-                            (cf->argc == i->size() && cf->argcp == 0)
-                            || (cf->argc >= i->size() && cf->argcp > 0)
-                            || (cf->argc <= i->size() && cf->argcp < 0)
+                            ((cf->argc == i->size()) && (cf->argcp == 0))
+                            || ((cf->argc >= i->size()) && (cf->argcp > 0))
+                            || ((cf->argc <= i->size()) && (cf->argcp < 0))
                             ) {
                             if (cf->func(*i) == EXIT_MAIN)
                                 return EXIT_MAIN;
@@ -214,21 +215,23 @@ namespace sll {
                             if (cf->argcp < 0)
                                 msgtemp << " or LESS";
                             sendError(msgtemp.str());
+                            return 1;
                         }
                     }
                 }
+                if (!i->empty()) sendError("Unknown command '" + (*i)[0] + "'");
             }
             return 0;
         }
     }   command;
-    void regcmd(std::string cmdstr, //�������ַ�
-                Fp cmdfp,           //����ָ��
-                int argc,           //��Ҫ�Ĳ������
-                slt::tArgcp argcp) {      /*  ��������ж������
-                                        argcp_ mustmatchΪ����ƥ��argc��
-                                        argcp_ lessΪ����С�ڵ���argc��
-                                        argcp_ moreΪ������ڵ���argc��
-                                        ��������˴�������Ĳ���������ᱨ��
+    void regcmd(std::string cmdstr, //根目录字符串
+                Fp cmdfp,           //函数指针
+                int argc,           //需要的参数数量
+                slt::tArgcp argcp) {      /*  参数数量的判断条件：
+                                        nArgcp mustmatch 传递的参数数量必须与argc相同；
+                                        nArgcp less      传递的参数数量必须小于等于argc；
+                                        nArgcp more      传递的参数数量必须大于等于argc。
+                                        执行条件时若传递了错误数量的参数将会报错。
                                     */
         tCmdreg temp{ cmdstr,cmdfp,argc,argcp };
         cmd_register.push_back(temp);

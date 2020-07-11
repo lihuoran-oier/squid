@@ -1,9 +1,9 @@
 #include "heads.hpp"
 std::string exePath;
-#define argcp_ slt::tArgcp::
+#define nArgcp slt::tArgcp::
 //===添加命令处理函数开始===//
 
-int _Settings_cmd(const std::vector<std::string>& args) {
+int _Settings_cmd(const lcmd& args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     if (args[1] == "m" || args[1] == "modify") {
         if (args[2] == "sendLog") {
@@ -66,40 +66,41 @@ int _Settings_cmd(const std::vector<std::string>& args) {
     }
     return 0;
 }
-int _System_sqcmd(const std::vector<std::string>& args) {
+int _System_sqcmd(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     sll::sendLog("Run system command");
     system(args[1].c_str());
     return 0;
 }
-int output(const std::vector<std::string>& args) {
+int output(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     sll::sendOutput(args[1], true);
     return 0;
 }
-int _Exit_sqcmd(const std::vector<std::string>& args) {
+int _Exit_sqcmd(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     return sll::EXIT_MAIN;
 }
-int runfile(const std::vector<std::string>& args) {
+int runfile(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     std::ifstream rf(args[1].c_str());
     if (rf) {
         std::stringstream rawf;
         rawf << rf.rdbuf();
-        sll::command.run(rawf.str());
+        std::string stemp = rawf.str();
+        sll::command.run(stemp);
     }
     else {
         sll::sendError("File " + args[1] + " dose not exist");
     }
 }
-int _loop_Sqcmd(const std::vector<std::string>& args) {
+int _loop_Sqcmd(const lcmd &args) {
     return 0;
 }
-int _Endloop_Sqcmd(const std::vector<std::string>& args) {
+int _Endloop_Sqcmd(const lcmd &args) {
     return 0;
 }
-int _Var_sqcmd(const std::vector<std::string>& args) {
+int _Var_sqcmd(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     if (args[1] == "new" || args[1] == "create" || args[1] == "def" || args[1] == "define") {
         if (sll::var_list.count(args[2]) == 1) {
@@ -183,17 +184,17 @@ int _Var_sqcmd(const std::vector<std::string>& args) {
     }
     return 0;
 }
-int _If_sqcmd(const std::vector<std::string>& args) {
+int _If_sqcmd(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     sll::_tIfstate temp = { sll::atob<std::string,float>(args[1]),sll::atob<std::string,float>(args[2]),args[3] };
     sll::ifstatu.push_back(temp);
     return 0;
 }
-int _Endif_sqcmd(const std::vector<std::string>& args) {
+int _Endif_sqcmd(const lcmd &args) {
     if(!sll::ifstatu.empty()) sll::ifstatu.pop_back();
     return 0;
 }
-int _Waitfor_sqcmd(const std::vector<std::string>& args) {
+int _Waitfor_sqcmd(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
     int tm = sll::atob<std::string, int>(args[1]);
     clock_t st;
@@ -204,7 +205,7 @@ int _Waitfor_sqcmd(const std::vector<std::string>& args) {
 
 /*
     请使用这个格式来添加命令处理函数：
-    int 函数名(const std::vector<std::string>& args){...}
+    int 函数名(const lcmd &args){...}
     args是用vector<string>形式储存的命令参数列表。
 
     为了使命令的运行受if状态的控制，除了无视if的特殊命令，请在函数的第一行加上：
@@ -217,20 +218,20 @@ int _Waitfor_sqcmd(const std::vector<std::string>& args) {
 void regist_command(void) { //注册命令
     sll::cmd_register.clear();
 
-    sll::regcmd("settings", _Settings_cmd,  4, argcp_ less);
-    sll::regcmd("system",   _System_sqcmd,  2, argcp_ mustmatch);
-    sll::regcmd("output",   output,         2, argcp_ mustmatch);
-    sll::regcmd("print",    output,         2, argcp_ mustmatch);
-    sll::regcmd("echo",     output,         2, argcp_ mustmatch);
-    sll::regcmd("exit",     _Exit_sqcmd,    1, argcp_ mustmatch);
-    sll::regcmd("runfile",  runfile,        2, argcp_ mustmatch);
-    sll::regcmd("script",   runfile,        2, argcp_ mustmatch);
-    sll::regcmd("scr",      runfile,        2, argcp_ mustmatch);
-    sll::regcmd("var",      _Var_sqcmd,     5, argcp_ less);
-    sll::regcmd("variable", _Var_sqcmd,     5, argcp_ less);
-    sll::regcmd("if",       _If_sqcmd,      4, argcp_ mustmatch);
-    sll::regcmd("endif",    _Endif_sqcmd,   1, argcp_ mustmatch);
-    sll::regcmd("wait",     _Waitfor_sqcmd, 2, argcp_ mustmatch);
+    sll::regcmd("settings", _Settings_cmd,  4, nArgcp less);
+    sll::regcmd("system",   _System_sqcmd,  2, nArgcp mustmatch);
+    sll::regcmd("output",   output,         2, nArgcp mustmatch);
+    sll::regcmd("print",    output,         2, nArgcp mustmatch);
+    sll::regcmd("echo",     output,         2, nArgcp mustmatch);
+    sll::regcmd("exit",     _Exit_sqcmd,    1, nArgcp mustmatch);
+    sll::regcmd("runfile",  runfile,        2, nArgcp mustmatch);
+    sll::regcmd("script",   runfile,        2, nArgcp mustmatch);
+    sll::regcmd("scr",      runfile,        2, nArgcp mustmatch);
+    sll::regcmd("var",      _Var_sqcmd,     5, nArgcp less);
+    sll::regcmd("variable", _Var_sqcmd,     5, nArgcp less);
+    sll::regcmd("if",       _If_sqcmd,      4, nArgcp mustmatch);
+    sll::regcmd("endif",    _Endif_sqcmd,   1, nArgcp mustmatch);
+    sll::regcmd("wait",     _Waitfor_sqcmd, 2, nArgcp mustmatch);
     /*
         请参照sll::regcmd函数的用法来注册命令。
     */
@@ -263,7 +264,7 @@ int main(int argc, char* argv[])
     std::string inp_com;
     while(1)
     {
-        std::cout << ">>>";
+        std::cout << ">>> ";
         std::getline(std::cin, inp_com);
         if (sll::command.run(inp_com) == sll::EXIT_MAIN)
             return 0;
