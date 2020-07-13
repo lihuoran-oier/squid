@@ -5,10 +5,9 @@ settings m sendLog off
 settings m sendWarn off
 var new sec
 system cls
-output The time is:@<endl>@<sysTime>
-if $<sec> <= 5
+ifloop ${sec} <= 5
+    print "The time is:@{endl}@{sysTime}"
     var ope sec + 1
     wait 990
-    loop
-(endif)
+(endloop)
 var del sec

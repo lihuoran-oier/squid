@@ -7,19 +7,19 @@ settings m sendLog off
 var new a
 #Create a variable
 
-if $<a> is 0
-    output Hello world!
+if ${a} = 0
+    print "Hello world!"
     #The default valve of new variable is 0
 (endif)
 
 var operation a set 1
 #set 'a' to 1
-if $<a> is 1
-    output 欢迎使用Squid!
+if ${a} = 1
+    print "欢迎使用Squid!"
 (endif)
 
-if 1 is 2
-    output This command will not run
+if 1 = 2
+    print "This command will not run"
 (endif)
 var undef a
 #Delete the variable 'a'
