@@ -147,18 +147,18 @@ namespace sll {
             std::string strbuf;
             char state = 0;
             for (std::string::iterator li = command.begin(); li != command.end(); li++) {
-            	if (*li == '\n') {
-            		if (!strbuf.empty()) {
-            			ltemp.push_back(strbuf);
-            			strbuf.clear();
-            		}
-            		state = 0;
-            		if (!ltemp.empty() && ltemp[0].at(0) != '#') {
-            	    	cmdlines.push_back(ltemp);
-            	    	ltemp.clear();
-            		}
-            	}
-            	else if (state == 0) {
+                if (*li == '\n') {
+                    if (!strbuf.empty()) {
+                        ltemp.push_back(strbuf);
+                        strbuf.clear();
+                    }
+                    state = 0;
+                    if (!ltemp.empty() && ltemp[0].at(0) != '#') {
+                        cmdlines.push_back(ltemp);
+                        ltemp.clear();
+                    }
+                }
+                else if (state == 0) {
                     if (*li == ' ')
                         if (!strbuf.empty()) {
                             ltemp.push_back(strbuf);
@@ -173,8 +173,8 @@ namespace sll {
                         state = 1;
                     }
                     else strbuf.push_back(*li);
-            	}
-            	else if (state == 1) {
+                }
+                else if (state == 1) {
                     if (*li == '"') {
                         if (!strbuf.empty()) {
                             ltemp.push_back(strbuf);
@@ -182,30 +182,36 @@ namespace sll {
                         }
                         state = 0;
                     }
-        	    	else strbuf.push_back(*li);
-            	}
+                    else strbuf.push_back(*li);
+                }
             }
-            
+
             for (std::vector<lcmd>::iterator i = cmdlines.begin(); i != cmdlines.end(); i++) {
                 for (lcmd::iterator j = i->begin(); j != i->end(); j++) {
                     *j = compile_quote(*j);
                 }
                 bool scfl = false;
-                for (std::vector<tCmdreg>::iterator cf = cmd_register.begin(); cf != cmd_register.end(); cf++) {
-                    if (cf->rootcmd == (*i)[0]) {
-                    	scfl = true;
-                        if (i->size() >= cf->argcMin && i->size() <= cf->argcMax) {
-                            if (cf->func(*i) == EXIT_MAIN)
-                                return EXIT_MAIN;
-                        }
-                        else {
-                            std::stringstream msgtemp;
-                            msgtemp << "Incorrect parameters count: Detected " << i->size() << " but needed [" << cf->argcMin << "," << cf->argcMax << "]";
-                            sendError(msgtemp.str());
+                if ((*i)[0] == "(endif)") {
+                    if (!ifstatu.empty()) ifstatu.pop_back();
+                    scfl = true;
+                }
+                else if (ifstate_now() || (*i)[0] == "if") {
+                    for (std::vector<tCmdreg>::iterator cf = cmd_register.begin(); cf != cmd_register.end(); cf++) {
+                        if (cf->rootcmd == (*i)[0]) {
+                            scfl = true;
+                            if (i->size() >= cf->argcMin && i->size() <= cf->argcMax) {
+                                if (cf->func(*i) == EXIT_MAIN)
+                                    return EXIT_MAIN;
+                            }
+                            else {
+                                std::stringstream msgtemp;
+                                msgtemp << "Incorrect parameters count: Detected " << i->size() << " but needed [" << cf->argcMin << "," << cf->argcMax << "]";
+                                sendError(msgtemp.str());
+                            }
                         }
                     }
+                    if (!i->empty() && !scfl) sendError("Unknown command '" + (*i)[0] + "'");
                 }
-                if (!i->empty() && !scfl) sendError("Unknown command '" + (*i)[0] + "'");
             }
             return 0;
         }

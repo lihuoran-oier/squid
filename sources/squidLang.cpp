@@ -185,7 +185,10 @@ int _Var_sqcmd(const lcmd &args) {
 }
 int _If_sqcmd(const lcmd &args) {
     if (!sll::ifstate_now()) return sll::IFSTATES_FALSE;
-    sll::_tIfstate temp = { sll::atob<std::string,float>(args[1]),sll::atob<std::string,float>(args[2]),args[3] };
+    sll::_tIfstate temp;
+    temp.x1 = sll::atob<std::string, float>(args[1]);
+    temp.x2 = sll::atob<std::string, float>(args[3]);
+    temp.oprt = args[2];
     sll::ifstatu.push_back(temp);
     return 0;
 }
@@ -229,7 +232,7 @@ void regist_command(void) { //注册命令
     sll::regcmd("var",      _Var_sqcmd,     2, 5);
     sll::regcmd("variable", _Var_sqcmd,     2, 5);
     sll::regcmd("if",       _If_sqcmd,      4, 4);
-    sll::regcmd("(endif)",    _Endif_sqcmd,   1, 1);
+    //sll::regcmd("(endif)",    _Endif_sqcmd,   1, 1);
     sll::regcmd("wait",     _Waitfor_sqcmd, 2, 2);
     /*
         请参照sll::regcmd函数的用法来注册命令。
